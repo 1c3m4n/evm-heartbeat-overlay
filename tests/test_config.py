@@ -11,6 +11,7 @@ def test_example_config_uses_current_grouped_schema():
     assert cfg.overlay.pulse_label
     assert cfg.overlay.breathing_label
     assert cfg.evm_visualization.label
+    assert cfg.breathing_roi is not None
 
 
 def test_load_config_parses_grouped_runtime_schema_and_display_labels(tmp_path):
@@ -25,6 +26,11 @@ roi:
   y: 20
   width: 120
   height: 80
+breathing_roi:
+  x: 30
+  y: 40
+  width: 200
+  height: 120
 capture:
   fps: 15
   use_opencl: true
@@ -103,6 +109,8 @@ output:
     assert cfg.input_url == "rtsp://frigate:8554/nursery"
     assert cfg.output_url == "rtsp://relay:8554/nursery-vitals"
     assert cfg.roi.as_slice() == (slice(20, 100), slice(10, 130))
+    assert cfg.breathing_roi is not None
+    assert cfg.breathing_roi.as_slice() == (slice(40, 160), slice(30, 230))
     assert cfg.processing.fps == 15
     assert cfg.processing.use_opencl is True
     assert cfg.processing.min_bpm == 80

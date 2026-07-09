@@ -23,6 +23,10 @@ from evm_overlay.stream_writer import FfmpegRtspWriter
 LOG = logging.getLogger(__name__)
 
 
+def crop_breathing_roi(frame, cfg):
+    return crop_roi(frame, cfg.breathing_roi or cfg.roi)
+
+
 def configure_opencl(enabled: bool) -> tuple[bool, bool]:
     cv2.ocl.setUseOpenCL(bool(enabled))
     available = bool(cv2.ocl.haveOpenCL())
@@ -100,7 +104,8 @@ def run(config_path: str) -> int:
         signal_roi = signal_evm.update(roi)
         skin_mask = make_skin_mask(roi, cfg.skin_detection)
         estimate = estimator.update(signal_roi, mask=skin_mask)
-        breathing_estimate = breathing_estimator.update(roi) if cfg.breathing.enabled else None
+        breathing_frame = crop_breathing_roi(frame, cfg)
+        breathing_estimate = breathing_estimator.update(breathing_frame) if cfg.breathing.enabled else None
         if breathing_estimate is not None and breathing_estimate.confidence < cfg.breathing.min_confidence:
             breathing_estimate = None
         evm_source = frame if cfg.evm_visualization.source == "frame" else roi

@@ -210,6 +210,7 @@ class AppConfig:
     input_url: str
     output_url: str
     roi: RoiConfig
+    breathing_roi: RoiConfig | None = None
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     signal_evm: SignalEvmConfig = field(default_factory=SignalEvmConfig)
     breathing: BreathingConfig = field(default_factory=BreathingConfig)
@@ -233,6 +234,8 @@ def load_config(path: str | Path) -> AppConfig:
     data = _expect_mapping(raw, "config")
     streams = _expect_mapping(data["streams"], "streams")
     roi = RoiConfig(**_expect_mapping(data["roi"], "roi"))
+    breathing_roi_data = data.get("breathing_roi")
+    breathing_roi = None if breathing_roi_data is None else RoiConfig(**_expect_mapping(breathing_roi_data, "breathing_roi"))
     capture = _expect_mapping(data.get("capture", {}), "capture")
     vitals = _expect_mapping(data.get("vitals", {}), "vitals")
     pulse = _expect_mapping(vitals.get("pulse", {}), "vitals.pulse")
@@ -264,6 +267,7 @@ def load_config(path: str | Path) -> AppConfig:
         input_url=str(streams["input_url"]),
         output_url=str(streams["output_url"]),
         roi=roi,
+        breathing_roi=breathing_roi,
         processing=processing,
         signal_evm=signal_evm,
         breathing=breathing,

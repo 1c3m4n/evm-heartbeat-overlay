@@ -8,12 +8,21 @@ streams:
   input_url: rtsp://1c4.local:8554/nursery
   output_url: rtsp://1c4.local:8554/nursery-vitals
 
-# Region used for pulse and breathing estimation, in output-video pixels.
+# Region used for pulse estimation, in output-video pixels. Keep this focused on
+# stable exposed skin.
 roi:
   x: 100
   y: 90
   width: 320
   height: 180
+
+# Optional separate breathing ROI, also in output-video pixels. Point this at
+# chest/torso/blanket movement. If omitted, breathing falls back to `roi`.
+breathing_roi:
+  x: 100
+  y: 240
+  width: 420
+  height: 240
 
 # Frame acquisition and hardware acceleration.
 capture:

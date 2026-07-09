@@ -30,7 +30,8 @@ cp config.example.yaml config.local.yaml
 | Section | Purpose |
 | --- | --- |
 | `streams` | RTSP input restream and published RTSP output URL. |
-| `roi` | Pixel rectangle used for pulse and breathing estimation. Coordinates are relative to `output.video`. |
+| `roi` | Pixel rectangle used for pulse estimation. Coordinates are relative to `output.video`. |
+| `breathing_roi` | Optional separate pixel rectangle for chest/torso/blanket movement. Falls back to `roi` when omitted. |
 | `capture` | Processing frame rate and OpenCL request. |
 | `vitals.pulse` / `vitals.breathing` | Physiological frequency bands, windows, and confidence/motion gates. |
 | `skin_detection` | Visible-light/IR skin candidate mask for pulse estimation. |
@@ -180,7 +181,8 @@ If `available=False`, the service can still run on CPU.
 
 ## Tuning notes
 
-- Start with a narrow, stable ROI containing exposed skin or a visibly moving chest/torso area.
+- Start with a narrow, stable pulse ROI containing exposed skin.
+- If breathing looks wrong or low-confidence, configure `breathing_roi` separately over the chest/torso/blanket movement instead of the face/skin ROI.
 - The breathing estimate needs the configured window of usable frames before it appears; the example uses 30 seconds.
 - `output.evm.subtle_max_delta` rejects large movement from amplification. Lower it to ignore more movement; raise it to admit more motion.
 - `denoise_spatial_kernel: 5` and `denoise_temporal_alpha: 0.35` provide moderate smoothing. A lower temporal alpha is calmer but adds delay.
