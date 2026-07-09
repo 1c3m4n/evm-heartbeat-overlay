@@ -75,6 +75,25 @@ class SignalEvmConfig:
 
 
 @dataclass(frozen=True)
+class MqttConfig:
+    enabled: bool = False
+    host: str = "127.0.0.1"
+    port: int = 1883
+    username: str | None = None
+    password: str | None = None
+    discovery_prefix: str = "homeassistant"
+    topic_prefix: str = "evm_heartbeat_overlay"
+    device_name: str = "EVM Heartbeat Overlay"
+    publish_interval_seconds: float = 5.0
+
+    def __post_init__(self) -> None:
+        if self.port <= 0 or self.port > 65535:
+            raise ValueError("telemetry.mqtt.port must be a valid TCP port")
+        if self.publish_interval_seconds <= 0:
+            raise ValueError("telemetry.mqtt.publish_interval_seconds must be > 0")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     width: int | None = None
     height: int | None = None
@@ -194,6 +213,7 @@ class AppConfig:
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     signal_evm: SignalEvmConfig = field(default_factory=SignalEvmConfig)
     breathing: BreathingConfig = field(default_factory=BreathingConfig)
+    mqtt: MqttConfig = field(default_factory=MqttConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     health: HealthConfig = field(default_factory=HealthConfig)
@@ -225,6 +245,8 @@ def load_config(path: str | Path) -> AppConfig:
     )
     breathing = BreathingConfig(**breathing_data)
     signal_evm = SignalEvmConfig(**signal_evm_data)
+    telemetry = _expect_mapping(data.get("telemetry", {}), "telemetry")
+    mqtt = MqttConfig(**_expect_mapping(telemetry.get("mqtt", {}), "telemetry.mqtt"))
     output_group = _expect_mapping(data.get("output", {}), "output")
     output = OutputConfig(**_expect_mapping(output_group.get("video", {}), "output.video"))
     snapshot = SnapshotConfig(**_expect_mapping(output_group.get("snapshot", {}), "output.snapshot"))
@@ -245,6 +267,7 @@ def load_config(path: str | Path) -> AppConfig:
         processing=processing,
         signal_evm=signal_evm,
         breathing=breathing,
+        mqtt=mqtt,
         output=output,
         snapshot=snapshot,
         health=health,

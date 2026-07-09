@@ -54,6 +54,14 @@ skin_detection:
   ir_luma_min: 40
   ir_luma_max: 240
   ir_grayscale_tolerance: 12
+telemetry:
+  mqtt:
+    enabled: true
+    host: mqtt.local
+    port: 1883
+    discovery_prefix: homeassistant
+    topic_prefix: nursery_evm
+    device_name: Nursery EVM
 output:
   video:
     width: 1152
@@ -117,6 +125,9 @@ output:
     assert cfg.snapshot.port == 8088
     assert cfg.health.enabled is True
     assert cfg.health.port == 8089
+    assert cfg.mqtt.enabled is True
+    assert cfg.mqtt.host == "mqtt.local"
+    assert cfg.mqtt.topic_prefix == "nursery_evm"
     assert cfg.skin_detection.preset == "auto"
     assert cfg.overlay.pulse_label == "Heart rate"
     assert cfg.overlay.breathing_label == "Respiration"

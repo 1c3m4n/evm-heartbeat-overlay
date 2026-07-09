@@ -53,6 +53,20 @@ skin_detection:
   ir_luma_max: 245
   ir_grayscale_tolerance: 18
 
+# Optional Home Assistant MQTT discovery and state publishing. Keep passwords
+# only in ignored config.local.yaml or environment-managed secrets.
+telemetry:
+  mqtt:
+    enabled: false
+    host: 127.0.0.1
+    port: 1883
+    username: null
+    password: null
+    discovery_prefix: homeassistant
+    topic_prefix: evm_heartbeat_overlay
+    device_name: EVM Heartbeat Overlay
+    publish_interval_seconds: 5
+
 # Published video, HTTP snapshot, and all on-frame display settings.
 output:
   video:

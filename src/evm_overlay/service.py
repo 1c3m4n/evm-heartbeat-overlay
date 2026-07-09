@@ -12,6 +12,7 @@ from evm_overlay.evm import TemporalPyramidEvm
 from evm_overlay.evm_visualization import EvmVisualizer, compute_evm_inset_rect, draw_evm_inset
 from evm_overlay.frame_processing import resize_for_output
 from evm_overlay.health import RuntimeTelemetry, start_health_server
+from evm_overlay.mqtt import connect_publisher
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
@@ -54,6 +55,13 @@ def run(config_path: str) -> int:
     health_server = start_health_server(cfg.health.host, cfg.health.port, telemetry) if cfg.health.enabled else None
     if health_server is not None:
         LOG.info("health server listening on http://%s:%s/health", cfg.health.host, cfg.health.port)
+    mqtt_publisher = None
+    if cfg.mqtt.enabled:
+        try:
+            mqtt_publisher = connect_publisher(cfg.mqtt)
+            LOG.info("MQTT telemetry enabled for %s:%s", cfg.mqtt.host, cfg.mqtt.port)
+        except Exception:
+            LOG.exception("MQTT setup failed; continuing without MQTT telemetry")
 
     estimator = PulseEstimator(
         fps=fps,
@@ -79,6 +87,7 @@ def run(config_path: str) -> int:
         max_signal_delta=cfg.breathing.max_signal_delta,
     )
     last = 0.0
+    last_mqtt_publish = 0.0
     while True:
         ok, frame = capture.read()
         if not ok:
@@ -112,6 +121,12 @@ def run(config_path: str) -> int:
             breathing_bpm=breathing_estimate.bpm if breathing_estimate else None,
             breathing_confidence=breathing_estimate.confidence if breathing_estimate else None,
         )
+        if mqtt_publisher is not None and time.monotonic() - last_mqtt_publish >= cfg.mqtt.publish_interval_seconds:
+            try:
+                mqtt_publisher.publish_state(telemetry.snapshot())
+                last_mqtt_publish = time.monotonic()
+            except Exception:
+                LOG.exception("MQTT state publish failed")
         snapshot_store.update(output_frame)
         writer.write(output_frame)
 
