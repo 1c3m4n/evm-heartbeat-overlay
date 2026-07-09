@@ -16,6 +16,9 @@ processing:
   fps: 15
   min_bpm: 80
   max_bpm: 180
+output:
+  width: 1152
+  height: 648
 evm_visualization:
   enabled: true
   alpha: 25
@@ -34,6 +37,8 @@ evm_visualization:
     assert cfg.processing.fps == 15
     assert cfg.processing.min_bpm == 80
     assert cfg.processing.max_bpm == 180
+    assert cfg.output.width == 1152
+    assert cfg.output.height == 648
     assert cfg.evm_visualization.enabled is True
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05

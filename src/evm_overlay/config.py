@@ -38,6 +38,20 @@ class ProcessingConfig:
 
 
 @dataclass(frozen=True)
+class OutputConfig:
+    width: int | None = None
+    height: int | None = None
+
+    def __post_init__(self) -> None:
+        if (self.width is None) != (self.height is None):
+            raise ValueError("output.width and output.height must be set together")
+        if self.width is not None and self.width <= 0:
+            raise ValueError("output.width must be > 0")
+        if self.height is not None and self.height <= 0:
+            raise ValueError("output.height must be > 0")
+
+
+@dataclass(frozen=True)
 class OverlayConfig:
     enabled: bool = True
     label: str = "Pulse"
@@ -71,6 +85,7 @@ class AppConfig:
     output_url: str
     roi: RoiConfig
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    output: OutputConfig = field(default_factory=OutputConfig)
     overlay: OverlayConfig = field(default_factory=OverlayConfig)
     evm_visualization: EvmVisualizationConfig = field(default_factory=EvmVisualizationConfig)
 
@@ -86,6 +101,7 @@ def load_config(path: str | Path) -> AppConfig:
     data = _expect_mapping(raw, "config")
     roi = RoiConfig(**_expect_mapping(data["roi"], "roi"))
     processing = ProcessingConfig(**data.get("processing", {}))
+    output = OutputConfig(**data.get("output", {}))
     overlay_data = data.get("overlay", {})
     if "position" in overlay_data:
         overlay_data = {**overlay_data, "position": tuple(overlay_data["position"])}
@@ -99,6 +115,7 @@ def load_config(path: str | Path) -> AppConfig:
         output_url=str(data["output_url"]),
         roi=roi,
         processing=processing,
+        output=output,
         overlay=overlay,
         evm_visualization=evm_visualization,
     )

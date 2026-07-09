@@ -8,6 +8,7 @@ import cv2
 
 from evm_overlay.config import load_config
 from evm_overlay.evm_visualization import EvmVisualizer, draw_evm_inset
+from evm_overlay.frame_processing import resize_for_output
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
@@ -31,8 +32,11 @@ def run(config_path: str) -> int:
         raise RuntimeError(f"could not open input stream: {cfg.input_url}")
 
     fps = cfg.processing.fps
-    width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1280
-    height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 720
+    source_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1280
+    source_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 720
+    width = cfg.output.width or source_width
+    height = cfg.output.height or source_height
+    LOG.info("source size=%sx%s output size=%sx%s fps=%s", source_width, source_height, width, height, fps)
     writer = FfmpegRtspWriter(cfg.output_url, width, height, fps)
 
     estimator = PulseEstimator(
@@ -49,6 +53,7 @@ def run(config_path: str) -> int:
             LOG.warning("input read failed; retrying")
             time.sleep(0.5)
             continue
+        frame = resize_for_output(frame, cfg.output)
         roi = crop_roi(frame, cfg.roi)
         estimate = estimator.update(roi)
         evm_roi = evm_visualizer.update(roi)

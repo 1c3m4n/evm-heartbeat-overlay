@@ -1,16 +1,19 @@
 input_url: rtsp://1c4.local:8554/nursery
 output_url: rtsp://1c4.local:8554/nursery-heart
 roi:
-  x: 200
-  y: 180
-  width: 640
-  height: 360
+  x: 100
+  y: 90
+  width: 320
+  height: 180
 processing:
   fps: 15
   min_bpm: 80
   max_bpm: 200
-  window_seconds: 12
+  window_seconds: 20
   use_opencl: true
+output:
+  width: 1152
+  height: 648
 evm_visualization:
   enabled: true
   alpha: 25
