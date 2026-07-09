@@ -21,7 +21,7 @@ class PulseEstimator:
     EVM amplification can be inserted upstream later to improve SNR.
     """
 
-    def __init__(self, *, fps: int, min_bpm: int, max_bpm: int, window_seconds: int = 12) -> None:
+    def __init__(self, *, fps: int, min_bpm: int, max_bpm: int, window_seconds: int = 12, min_masked_pixels: int = 0) -> None:
         if fps <= 0:
             raise ValueError("fps must be > 0")
         if not (0 < min_bpm < max_bpm):
@@ -30,12 +30,24 @@ class PulseEstimator:
         self.min_hz = min_bpm / 60.0
         self.max_hz = max_bpm / 60.0
         self.samples_required = max(int(fps * window_seconds), fps * 4)
+        self.min_masked_pixels = min_masked_pixels
+        self.last_masked_pixels = 0
         self._values: deque[float] = deque(maxlen=self.samples_required)
 
-    def update(self, roi_frame: np.ndarray) -> PulseEstimate | None:
+    def update(self, roi_frame: np.ndarray, mask: np.ndarray | None = None) -> PulseEstimate | None:
         if roi_frame.ndim != 3 or roi_frame.shape[2] < 2:
             raise ValueError("roi_frame must be an HxWxC image with a green channel")
-        self._values.append(float(np.mean(roi_frame[:, :, 1])))
+        if mask is None:
+            self.last_masked_pixels = int(roi_frame.shape[0] * roi_frame.shape[1])
+            value = float(np.mean(roi_frame[:, :, 1]))
+        else:
+            if mask.shape != roi_frame.shape[:2]:
+                raise ValueError("mask must match roi_frame height and width")
+            self.last_masked_pixels = int(np.count_nonzero(mask))
+            if self.last_masked_pixels < self.min_masked_pixels:
+                return None
+            value = float(np.mean(roi_frame[:, :, 1][mask]))
+        self._values.append(value)
         if len(self._values) < self.samples_required:
             return None
         return self._estimate(np.asarray(self._values, dtype=np.float64))

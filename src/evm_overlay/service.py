@@ -13,6 +13,7 @@ from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
 from evm_overlay.snapshot import SnapshotStore, start_snapshot_server
+from evm_overlay.skin_detection import apply_mask_visualization, make_skin_mask
 from evm_overlay.stream_writer import FfmpegRtspWriter
 
 LOG = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ def run(config_path: str) -> int:
         min_bpm=cfg.processing.min_bpm,
         max_bpm=cfg.processing.max_bpm,
         window_seconds=cfg.processing.window_seconds,
+        min_masked_pixels=cfg.skin_detection.min_pixels,
     )
     evm_visualizer = EvmVisualizer(cfg.evm_visualization)
     last = 0.0
@@ -60,9 +62,13 @@ def run(config_path: str) -> int:
             continue
         frame = resize_for_output(frame, cfg.output)
         roi = crop_roi(frame, cfg.roi)
-        estimate = estimator.update(roi)
+        skin_mask = make_skin_mask(roi, cfg.skin_detection)
+        estimate = estimator.update(roi, mask=skin_mask)
         evm_source = frame if cfg.evm_visualization.source == "frame" else roi
-        evm_roi = evm_visualizer.update(evm_source)
+        evm_mask = make_skin_mask(evm_source, cfg.skin_detection)
+        evm_roi = evm_visualizer.update(evm_source, mask=evm_mask)
+        if cfg.skin_detection.enabled and cfg.skin_detection.visualize:
+            evm_roi = apply_mask_visualization(evm_roi, evm_mask)
         if estimate and time.monotonic() - last > 5:
             LOG.info("pulse bpm=%0.1f confidence=%0.2f samples=%s", estimate.bpm, estimate.confidence, estimate.samples)
             last = time.monotonic()

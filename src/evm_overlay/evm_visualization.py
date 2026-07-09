@@ -18,14 +18,18 @@ class EvmVisualizer:
         self.config = config
         self._baseline: np.ndarray | None = None
 
-    def update(self, roi_frame: np.ndarray) -> np.ndarray:
+    def update(self, roi_frame: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
         current = roi_frame.astype(np.float32)
         if self._baseline is None or self._baseline.shape != current.shape:
             self._baseline = current.copy()
             return roi_frame.copy()
 
         delta = current - self._baseline
-        amplified = np.clip(current + delta * self.config.alpha, 0, 255).astype(np.uint8)
+        amplified_float = current + delta * self.config.alpha
+        if mask is not None:
+            amplified_float = current.copy()
+            amplified_float[mask] = current[mask] + delta[mask] * self.config.alpha
+        amplified = np.clip(amplified_float, 0, 255).astype(np.uint8)
         lr = self.config.learning_rate
         self._baseline = (1.0 - lr) * self._baseline + lr * current
         return amplified

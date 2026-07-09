@@ -19,6 +19,11 @@ snapshot:
   host: 0.0.0.0
   port: 8088
   path: /snapshot.jpg
+skin_detection:
+  enabled: true
+  preset: light
+  min_pixels: 500
+  visualize: true
 evm_visualization:
   enabled: true
   alpha: 25

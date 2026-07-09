@@ -24,6 +24,11 @@ snapshot:
   host: 0.0.0.0
   port: 8088
   path: /snapshot.jpg
+skin_detection:
+  enabled: true
+  preset: light
+  min_pixels: 50
+  visualize: true
 evm_visualization:
   enabled: true
   alpha: 25
@@ -49,6 +54,10 @@ evm_visualization:
     assert cfg.snapshot.host == "0.0.0.0"
     assert cfg.snapshot.port == 8088
     assert cfg.snapshot.path == "/snapshot.jpg"
+    assert cfg.skin_detection.enabled is True
+    assert cfg.skin_detection.preset == "light"
+    assert cfg.skin_detection.min_pixels == 50
+    assert cfg.skin_detection.visualize is True
     assert cfg.evm_visualization.enabled is True
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05
