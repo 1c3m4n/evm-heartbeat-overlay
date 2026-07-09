@@ -61,7 +61,8 @@ def run(config_path: str) -> int:
         frame = resize_for_output(frame, cfg.output)
         roi = crop_roi(frame, cfg.roi)
         estimate = estimator.update(roi)
-        evm_roi = evm_visualizer.update(roi)
+        evm_source = frame if cfg.evm_visualization.source == "frame" else roi
+        evm_roi = evm_visualizer.update(evm_source)
         if estimate and time.monotonic() - last > 5:
             LOG.info("pulse bpm=%0.1f confidence=%0.2f samples=%s", estimate.bpm, estimate.confidence, estimate.samples)
             last = time.monotonic()

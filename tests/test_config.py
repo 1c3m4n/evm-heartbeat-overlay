@@ -29,6 +29,7 @@ evm_visualization:
   alpha: 25
   learning_rate: 0.05
   mode: inset
+  source: frame
   inset_scale: 0.5
 """,
         encoding="utf-8",
@@ -52,4 +53,5 @@ evm_visualization:
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05
     assert cfg.evm_visualization.mode == "inset"
+    assert cfg.evm_visualization.source == "frame"
     assert cfg.evm_visualization.inset_scale == 0.5

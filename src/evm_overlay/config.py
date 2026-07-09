@@ -83,6 +83,7 @@ class EvmVisualizationConfig:
     alpha: float = 20.0
     learning_rate: float = 0.05
     mode: str = "inset"
+    source: str = "roi"
     inset_scale: float = 0.5
     anchor: str = "near_roi"
     margin: int = 8
@@ -95,6 +96,8 @@ class EvmVisualizationConfig:
             raise ValueError("evm_visualization.learning_rate must be in (0, 1]")
         if self.mode not in {"inset", "replace_roi", "off"}:
             raise ValueError("evm_visualization.mode must be inset, replace_roi, or off")
+        if self.source not in {"roi", "frame"}:
+            raise ValueError("evm_visualization.source must be roi or frame")
         if self.anchor not in {"near_roi", "bottom_right"}:
             raise ValueError("evm_visualization.anchor must be near_roi or bottom_right")
         if self.inset_scale <= 0:

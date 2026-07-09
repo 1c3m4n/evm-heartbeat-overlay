@@ -24,7 +24,8 @@ evm_visualization:
   alpha: 25
   learning_rate: 0.05
   mode: inset
-  inset_scale: 1.5
+  source: frame
+  inset_scale: 0.42
   anchor: bottom_right
   margin: 24
 overlay:
