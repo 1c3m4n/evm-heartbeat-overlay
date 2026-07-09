@@ -11,6 +11,12 @@ processing:
   max_bpm: 200
   window_seconds: 12
   use_opencl: true
+evm_visualization:
+  enabled: true
+  alpha: 25
+  learning_rate: 0.05
+  mode: inset
+  inset_scale: 0.5
 overlay:
   enabled: true
   label: Nursery pulse

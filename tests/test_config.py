@@ -16,6 +16,12 @@ processing:
   fps: 15
   min_bpm: 80
   max_bpm: 180
+evm_visualization:
+  enabled: true
+  alpha: 25
+  learning_rate: 0.05
+  mode: inset
+  inset_scale: 0.5
 """,
         encoding="utf-8",
     )
@@ -28,3 +34,8 @@ processing:
     assert cfg.processing.fps == 15
     assert cfg.processing.min_bpm == 80
     assert cfg.processing.max_bpm == 180
+    assert cfg.evm_visualization.enabled is True
+    assert cfg.evm_visualization.alpha == 25
+    assert cfg.evm_visualization.learning_rate == 0.05
+    assert cfg.evm_visualization.mode == "inset"
+    assert cfg.evm_visualization.inset_scale == 0.5

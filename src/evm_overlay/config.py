@@ -45,12 +45,34 @@ class OverlayConfig:
 
 
 @dataclass(frozen=True)
+class EvmVisualizationConfig:
+    enabled: bool = False
+    alpha: float = 20.0
+    learning_rate: float = 0.05
+    mode: str = "inset"
+    inset_scale: float = 0.5
+    margin: int = 8
+    border_color: tuple[int, int, int] = (0, 255, 255)
+
+    def __post_init__(self) -> None:
+        if self.alpha < 0:
+            raise ValueError("evm_visualization.alpha must be >= 0")
+        if not (0 < self.learning_rate <= 1):
+            raise ValueError("evm_visualization.learning_rate must be in (0, 1]")
+        if self.mode not in {"inset", "replace_roi", "off"}:
+            raise ValueError("evm_visualization.mode must be inset, replace_roi, or off")
+        if self.inset_scale <= 0:
+            raise ValueError("evm_visualization.inset_scale must be > 0")
+
+
+@dataclass(frozen=True)
 class AppConfig:
     input_url: str
     output_url: str
     roi: RoiConfig
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     overlay: OverlayConfig = field(default_factory=OverlayConfig)
+    evm_visualization: EvmVisualizationConfig = field(default_factory=EvmVisualizationConfig)
 
 
 def _expect_mapping(data: Any, name: str) -> dict[str, Any]:
@@ -68,10 +90,15 @@ def load_config(path: str | Path) -> AppConfig:
     if "position" in overlay_data:
         overlay_data = {**overlay_data, "position": tuple(overlay_data["position"])}
     overlay = OverlayConfig(**overlay_data)
+    evm_data = data.get("evm_visualization", {})
+    if "border_color" in evm_data:
+        evm_data = {**evm_data, "border_color": tuple(evm_data["border_color"])}
+    evm_visualization = EvmVisualizationConfig(**evm_data)
     return AppConfig(
         input_url=str(data["input_url"]),
         output_url=str(data["output_url"]),
         roi=roi,
         processing=processing,
         overlay=overlay,
+        evm_visualization=evm_visualization,
     )

@@ -7,6 +7,7 @@ import time
 import cv2
 
 from evm_overlay.config import load_config
+from evm_overlay.evm_visualization import EvmVisualizer, draw_evm_inset
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
@@ -40,6 +41,7 @@ def run(config_path: str) -> int:
         max_bpm=cfg.processing.max_bpm,
         window_seconds=cfg.processing.window_seconds,
     )
+    evm_visualizer = EvmVisualizer(cfg.evm_visualization)
     last = 0.0
     while True:
         ok, frame = capture.read()
@@ -49,10 +51,12 @@ def run(config_path: str) -> int:
             continue
         roi = crop_roi(frame, cfg.roi)
         estimate = estimator.update(roi)
+        evm_roi = evm_visualizer.update(roi)
         if estimate and time.monotonic() - last > 5:
             LOG.info("pulse bpm=%0.1f confidence=%0.2f samples=%s", estimate.bpm, estimate.confidence, estimate.samples)
             last = time.monotonic()
-        writer.write(draw_overlay(frame, estimate, cfg.overlay))
+        output_frame = draw_evm_inset(frame, evm_roi, cfg.roi, cfg.evm_visualization)
+        writer.write(draw_overlay(output_frame, estimate, cfg.overlay))
 
 
 def main() -> None:
