@@ -19,6 +19,11 @@ processing:
 output:
   width: 1152
   height: 648
+snapshot:
+  enabled: true
+  host: 0.0.0.0
+  port: 8088
+  path: /snapshot.jpg
 evm_visualization:
   enabled: true
   alpha: 25
@@ -39,6 +44,10 @@ evm_visualization:
     assert cfg.processing.max_bpm == 180
     assert cfg.output.width == 1152
     assert cfg.output.height == 648
+    assert cfg.snapshot.enabled is True
+    assert cfg.snapshot.host == "0.0.0.0"
+    assert cfg.snapshot.port == 8088
+    assert cfg.snapshot.path == "/snapshot.jpg"
     assert cfg.evm_visualization.enabled is True
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05

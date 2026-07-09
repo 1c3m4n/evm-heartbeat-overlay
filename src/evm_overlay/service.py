@@ -12,6 +12,7 @@ from evm_overlay.frame_processing import resize_for_output
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
+from evm_overlay.snapshot import SnapshotStore, start_snapshot_server
 from evm_overlay.stream_writer import FfmpegRtspWriter
 
 LOG = logging.getLogger(__name__)
@@ -38,6 +39,10 @@ def run(config_path: str) -> int:
     height = cfg.output.height or source_height
     LOG.info("source size=%sx%s output size=%sx%s fps=%s", source_width, source_height, width, height, fps)
     writer = FfmpegRtspWriter(cfg.output_url, width, height, fps)
+    snapshot_store = SnapshotStore()
+    snapshot_server = start_snapshot_server(cfg.snapshot, snapshot_store)
+    if snapshot_server is not None:
+        LOG.info("snapshot server listening on http://%s:%s%s", cfg.snapshot.host, cfg.snapshot.port, cfg.snapshot.path)
 
     estimator = PulseEstimator(
         fps=fps,
@@ -63,7 +68,9 @@ def run(config_path: str) -> int:
         evm_rect = compute_evm_inset_rect(frame, evm_roi, cfg.roi, cfg.evm_visualization)
         output_frame = draw_evm_inset(frame, evm_roi, cfg.roi, cfg.evm_visualization)
         pulse_position = (evm_rect[0], max(32, evm_rect[1] - 12)) if cfg.evm_visualization.enabled else None
-        writer.write(draw_overlay(output_frame, estimate, cfg.overlay, position=pulse_position))
+        output_frame = draw_overlay(output_frame, estimate, cfg.overlay, position=pulse_position)
+        snapshot_store.update(output_frame)
+        writer.write(output_frame)
 
 
 def main() -> None:

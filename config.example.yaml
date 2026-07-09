@@ -14,6 +14,11 @@ processing:
 output:
   width: 1152
   height: 648
+snapshot:
+  enabled: true
+  host: 0.0.0.0
+  port: 8088
+  path: /snapshot.jpg
 evm_visualization:
   enabled: true
   alpha: 25

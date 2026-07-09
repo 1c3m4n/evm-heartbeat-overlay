@@ -52,6 +52,20 @@ class OutputConfig:
 
 
 @dataclass(frozen=True)
+class SnapshotConfig:
+    enabled: bool = False
+    host: str = "0.0.0.0"
+    port: int = 8088
+    path: str = "/snapshot.jpg"
+
+    def __post_init__(self) -> None:
+        if self.port <= 0 or self.port > 65535:
+            raise ValueError("snapshot.port must be a valid TCP port")
+        if not self.path.startswith("/"):
+            raise ValueError("snapshot.path must start with /")
+
+
+@dataclass(frozen=True)
 class OverlayConfig:
     enabled: bool = True
     label: str = "Pulse"
@@ -94,6 +108,7 @@ class AppConfig:
     roi: RoiConfig
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
+    snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     overlay: OverlayConfig = field(default_factory=OverlayConfig)
     evm_visualization: EvmVisualizationConfig = field(default_factory=EvmVisualizationConfig)
 
@@ -110,6 +125,7 @@ def load_config(path: str | Path) -> AppConfig:
     roi = RoiConfig(**_expect_mapping(data["roi"], "roi"))
     processing = ProcessingConfig(**data.get("processing", {}))
     output = OutputConfig(**data.get("output", {}))
+    snapshot = SnapshotConfig(**data.get("snapshot", {}))
     overlay_data = data.get("overlay", {})
     if "position" in overlay_data:
         overlay_data = {**overlay_data, "position": tuple(overlay_data["position"])}
@@ -124,6 +140,7 @@ def load_config(path: str | Path) -> AppConfig:
         roi=roi,
         processing=processing,
         output=output,
+        snapshot=snapshot,
         overlay=overlay,
         evm_visualization=evm_visualization,
     )
