@@ -1,0 +1,18 @@
+services:
+  evm-heartbeat-overlay:
+    build: .
+    image: evm-heartbeat-overlay:local
+    container_name: evm-heartbeat-overlay
+    restart: unless-stopped
+    devices:
+      - /dev/dri:/dev/dri
+      - /dev/kfd:/dev/kfd
+    group_add:
+      - video
+      - render
+    security_opt:
+      - seccomp=unconfined
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+    environment:
+      - ROC_ENABLE_PRE_VEGA=1

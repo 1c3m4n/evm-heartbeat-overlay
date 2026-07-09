@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>EVM-Heartbeat-Overlay</Name>
+  <Repository>ghcr.io/yourname/evm-heartbeat-overlay:latest</Repository>
+  <Registry>https://github.com/yourname/evm-heartbeat-overlay</Registry>
+  <Network>bridge</Network>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/yourname/evm-heartbeat-overlay/issues</Support>
+  <Project>https://github.com/yourname/evm-heartbeat-overlay</Project>
+  <Overview>Experimental Eulerian/rPPG heartbeat extraction from a Frigate/go2rtc stream with an overlay restream. Not medical software.</Overview>
+  <Category>MediaServer:Video Status:Beta</Category>
+  <WebUI/>
+  <TemplateURL>https://raw.githubusercontent.com/yourname/evm-heartbeat-overlay/main/unraid/evm-heartbeat-overlay.xml</TemplateURL>
+  <Icon>https://raw.githubusercontent.com/yourname/evm-heartbeat-overlay/main/assets/icon.png</Icon>
+  <ExtraParams>--device=/dev/dri --device=/dev/kfd --group-add video --group-add render --security-opt seccomp=unconfined</ExtraParams>
+  <PostArgs>--config /config/config.yaml</PostArgs>
+  <CPUset/>
+  <DateInstalled></DateInstalled>
+  <Config Name="Config" Target="/config" Default="/mnt/user/appdata/evm-heartbeat-overlay" Mode="rw" Description="Directory containing config.yaml" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/evm-heartbeat-overlay</Config>
+  <Config Name="Input RTSP URL" Target="INPUT_URL" Default="rtsp://1c4.local:8554/nursery" Mode="" Description="Documentary variable only; set input_url in config.yaml." Type="Variable" Display="always" Required="false" Mask="false">rtsp://1c4.local:8554/nursery</Config>
+  <Config Name="Output RTSP URL" Target="OUTPUT_URL" Default="rtsp://1c4.local:8554/nursery-heart" Mode="" Description="Documentary variable only; set output_url in config.yaml." Type="Variable" Display="always" Required="false" Mask="false">rtsp://1c4.local:8554/nursery-heart</Config>
+</Container>
