@@ -26,6 +26,12 @@ vitals:
     min_bpm: 80
     max_bpm: 200
     window_seconds: 20
+  signal_evm:
+    enabled: true
+    low_hz: 0.7
+    high_hz: 2.5
+    alpha: 8
+    pyramid_level: 1
   breathing:
     enabled: true
     min_bpm: 8

@@ -33,6 +33,12 @@ vitals:
     min_bpm: 80
     max_bpm: 180
     window_seconds: 20
+  signal_evm:
+    enabled: true
+    low_hz: 0.7
+    high_hz: 2.5
+    alpha: 8
+    pyramid_level: 1
   breathing:
     enabled: true
     min_bpm: 8
@@ -90,6 +96,11 @@ output:
     assert cfg.processing.min_bpm == 80
     assert cfg.processing.max_bpm == 180
     assert cfg.processing.window_seconds == 20
+    assert cfg.signal_evm.enabled is True
+    assert cfg.signal_evm.low_hz == 0.7
+    assert cfg.signal_evm.high_hz == 2.5
+    assert cfg.signal_evm.alpha == 8
+    assert cfg.signal_evm.pyramid_level == 1
     assert cfg.breathing.enabled is True
     assert cfg.breathing.min_bpm == 8
     assert cfg.breathing.max_bpm == 35

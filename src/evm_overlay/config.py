@@ -58,6 +58,23 @@ class BreathingConfig:
 
 
 @dataclass(frozen=True)
+class SignalEvmConfig:
+    enabled: bool = False
+    low_hz: float = 0.7
+    high_hz: float = 2.5
+    alpha: float = 8.0
+    pyramid_level: int = 1
+
+    def __post_init__(self) -> None:
+        if not (0 < self.low_hz < self.high_hz):
+            raise ValueError("vitals.signal_evm low_hz must be > 0 and lower than high_hz")
+        if self.alpha < 0:
+            raise ValueError("vitals.signal_evm.alpha must be >= 0")
+        if self.pyramid_level < 0:
+            raise ValueError("vitals.signal_evm.pyramid_level must be >= 0")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     width: int | None = None
     height: int | None = None
@@ -164,6 +181,7 @@ class AppConfig:
     output_url: str
     roi: RoiConfig
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    signal_evm: SignalEvmConfig = field(default_factory=SignalEvmConfig)
     breathing: BreathingConfig = field(default_factory=BreathingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
@@ -186,6 +204,7 @@ def load_config(path: str | Path) -> AppConfig:
     capture = _expect_mapping(data.get("capture", {}), "capture")
     vitals = _expect_mapping(data.get("vitals", {}), "vitals")
     pulse = _expect_mapping(vitals.get("pulse", {}), "vitals.pulse")
+    signal_evm_data = _expect_mapping(vitals.get("signal_evm", {}), "vitals.signal_evm")
     breathing_data = _expect_mapping(vitals.get("breathing", {}), "vitals.breathing")
     processing = ProcessingConfig(
         fps=capture.get("fps", ProcessingConfig.fps),
@@ -193,6 +212,7 @@ def load_config(path: str | Path) -> AppConfig:
         **pulse,
     )
     breathing = BreathingConfig(**breathing_data)
+    signal_evm = SignalEvmConfig(**signal_evm_data)
     output_group = _expect_mapping(data.get("output", {}), "output")
     output = OutputConfig(**_expect_mapping(output_group.get("video", {}), "output.video"))
     snapshot = SnapshotConfig(**_expect_mapping(output_group.get("snapshot", {}), "output.snapshot"))
@@ -210,6 +230,7 @@ def load_config(path: str | Path) -> AppConfig:
         output_url=str(streams["output_url"]),
         roi=roi,
         processing=processing,
+        signal_evm=signal_evm,
         breathing=breathing,
         output=output,
         snapshot=snapshot,

@@ -8,6 +8,7 @@ import cv2
 
 from evm_overlay.config import load_config
 from evm_overlay.breathing import BreathingEstimator
+from evm_overlay.evm import TemporalPyramidEvm
 from evm_overlay.evm_visualization import EvmVisualizer, compute_evm_inset_rect, draw_evm_inset
 from evm_overlay.frame_processing import resize_for_output
 from evm_overlay.overlay import draw_overlay
@@ -54,6 +55,14 @@ def run(config_path: str) -> int:
         min_masked_pixels=cfg.skin_detection.min_pixels,
     )
     evm_visualizer = EvmVisualizer(cfg.evm_visualization)
+    signal_evm = TemporalPyramidEvm(
+        fps=fps,
+        low_hz=cfg.signal_evm.low_hz,
+        high_hz=cfg.signal_evm.high_hz,
+        alpha=cfg.signal_evm.alpha,
+        pyramid_level=cfg.signal_evm.pyramid_level,
+        enabled=cfg.signal_evm.enabled,
+    )
     breathing_estimator = BreathingEstimator(
         fps=fps,
         min_bpm=cfg.breathing.min_bpm,
@@ -70,8 +79,9 @@ def run(config_path: str) -> int:
             continue
         frame = resize_for_output(frame, cfg.output)
         roi = crop_roi(frame, cfg.roi)
+        signal_roi = signal_evm.update(roi)
         skin_mask = make_skin_mask(roi, cfg.skin_detection)
-        estimate = estimator.update(roi, mask=skin_mask)
+        estimate = estimator.update(signal_roi, mask=skin_mask)
         breathing_estimate = breathing_estimator.update(roi) if cfg.breathing.enabled else None
         if breathing_estimate is not None and breathing_estimate.confidence < cfg.breathing.min_confidence:
             breathing_estimate = None
