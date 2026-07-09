@@ -10,6 +10,7 @@ from evm_overlay.config import load_config
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
+from evm_overlay.stream_writer import FfmpegRtspWriter
 
 LOG = logging.getLogger(__name__)
 
@@ -31,10 +32,7 @@ def run(config_path: str) -> int:
     fps = cfg.processing.fps
     width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)) or 1280
     height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 720
-    fourcc = cv2.VideoWriter_fourcc(*"H264")
-    writer = cv2.VideoWriter(cfg.output_url, cv2.CAP_FFMPEG, fourcc, fps, (width, height))
-    if not writer.isOpened():
-        raise RuntimeError(f"could not open output stream: {cfg.output_url}")
+    writer = FfmpegRtspWriter(cfg.output_url, width, height, fps)
 
     estimator = PulseEstimator(
         fps=fps,

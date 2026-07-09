@@ -40,6 +40,22 @@ input_url: rtsp://1c4.local:8554/nursery
 output_url: rtsp://1c4.local:8554/nursery-heart
 ```
 
+## Local network test stream
+
+For Frigate testing from the local network, this repo can publish the processed stream through a local MediaMTX RTSP relay. The currently tested output URL from this host is:
+
+```text
+rtsp://192.168.1.47:8554/baby-bed-heart
+```
+
+The service consumes Frigate's go2rtc restream:
+
+```text
+rtsp://1c4.local:8554/baby_bed
+```
+
+Add the output as a Frigate/go2rtc source when you want Frigate to view the overlay stream.
+
 ## AMD GPU / OpenCL notes
 
 The container template passes both AMD render nodes:
