@@ -34,7 +34,8 @@ cp config.example.yaml config.local.yaml
 | `capture` | Processing frame rate and OpenCL request. |
 | `vitals.pulse` / `vitals.breathing` | Physiological frequency bands, windows, and confidence/motion gates. |
 | `skin_detection` | Visible-light/IR skin candidate mask for pulse estimation. |
-| `output.video` / `output.snapshot` | Published resolution and HTTP snapshot endpoint. |
+| `telemetry.mqtt` | Optional Home Assistant MQTT discovery and periodic state publishing. Disabled by default. |
+| `output.video` / `output.snapshot` / `output.health` | Published resolution, HTTP snapshot, and JSON health/metrics endpoint. |
 | `output.overlay` | Display toggle, rate confidence threshold, position, and both on-frame rate labels. |
 | `output.evm` | EVM panel appearance, subtle-motion filtering, and display denoising. |
 
@@ -49,6 +50,20 @@ output:
     breathing_label: Breathing
   evm:
     label: Subtle motion
+```
+
+### Optional Home Assistant MQTT telemetry
+
+Set `telemetry.mqtt.enabled: true` only after adding your broker host and credentials to ignored `config.local.yaml`. On startup, the service publishes Home Assistant MQTT discovery for pulse, breathing, confidence, and signal-quality sensors, then sends one state update every configured interval.
+
+```yaml
+telemetry:
+  mqtt:
+    enabled: true
+    host: 192.168.1.10
+    username: your_mqtt_user
+    password: your_mqtt_password
+    topic_prefix: nursery_evm
 ```
 
 ## Local Docker test
@@ -67,7 +82,7 @@ streams:
 
 ### 2. Create the test relay and get the image
 
-Use the published `v1` image for local testing. The current GitHub Container Registry package is private, so authenticate once before pulling it:
+Use the published `v2` image for local testing. The current GitHub Container Registry package is private, so authenticate once before pulling it:
 
 ```bash
 echo "$(gh auth token)" | docker login ghcr.io -u 1c3m4n --password-stdin
@@ -81,7 +96,7 @@ docker run -d --name evm-mediamtx --network evm-test \
   -p 8554:8554 \
   bluenviron/mediamtx:latest
 
-docker pull ghcr.io/1c3m4n/evm-heartbeat-overlay:v1
+docker pull ghcr.io/1c3m4n/evm-heartbeat-overlay:v2
 ```
 
 To test unpushed local code instead, build a local image and replace the final image name in the run command with `evm-heartbeat-overlay:local`:
@@ -106,8 +121,9 @@ docker run -d --name evm-heartbeat-overlay-test \
   --group-add render \
   --security-opt seccomp=unconfined \
   -p 8088:8088 \
+  -p 8089:8089 \
   -v "$PWD/config.local.yaml:/config/config.yaml:ro" \
-  ghcr.io/1c3m4n/evm-heartbeat-overlay:v1
+  ghcr.io/1c3m4n/evm-heartbeat-overlay:v2
 ```
 
 ### 4. Verify all layers
@@ -122,6 +138,8 @@ curl -sS --max-time 5 -o /tmp/evm-snapshot.jpg \
   http://127.0.0.1:8088/snapshot.jpg
 file /tmp/evm-snapshot.jpg
 
+curl -sS http://127.0.0.1:8089/health
+
 timeout 10 ffprobe -v error -rtsp_transport tcp \
   -select_streams v:0 \
   -show_entries stream=codec_name,width,height,avg_frame_rate \
@@ -134,6 +152,7 @@ For LAN consumers, replace `127.0.0.1` with the Docker host's LAN IP:
 ```text
 RTSP:     rtsp://HOST_LAN_IP:8554/evm-overlay
 Snapshot: http://HOST_LAN_IP:8088/snapshot.jpg
+Health:   http://HOST_LAN_IP:8089/health
 ```
 
 In Home Assistant Generic Camera, use the HTTP endpoint as **Still Image URL** and the RTSP endpoint as **Stream Source URL**.

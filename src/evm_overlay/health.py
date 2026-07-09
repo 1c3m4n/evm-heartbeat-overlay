@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -39,7 +39,7 @@ class RuntimeTelemetry:
             if breathing_bpm is not None:
                 self._data["breathing_bpm"] = breathing_bpm
                 self._data["breathing_confidence"] = breathing_confidence
-            self._data["updated_at"] = datetime.now(UTC).isoformat()
+            self._data["updated_at"] = datetime.now(timezone.utc).isoformat()
 
     def record_drop(self) -> None:
         with self._lock:

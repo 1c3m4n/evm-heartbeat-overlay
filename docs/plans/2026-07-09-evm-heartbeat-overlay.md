@@ -36,88 +36,23 @@ Runtime configuration is grouped into `streams`, `roi`, `capture`, `vitals`, `sk
 
 ## Remaining work
 
-### Task 4a: Implement bounded temporal-bandpass EVM core
+### Task 4a: Implement bounded temporal-bandpass EVM core — complete
 
-**Objective:** Add a CPU-first signal EVM processor which applies a Gaussian/Laplacian pyramid and a bounded temporal bandpass filter to an ROI.
+Implemented `TemporalPyramidEvm`: a CPU-first Laplacian-pyramid stage with cascaded temporal low-pass filters that form a bounded temporal band-pass signal. Unit tests cover pass-through mode, in-band amplification, and high-frequency rejection.
 
-**Files:**
-- Create: `src/evm_overlay/evm.py`
-- Create: `tests/test_evm.py`
+### Task 4b: Integrate signal EVM into the estimator pipeline — complete
 
-**Design constraints:**
-- Downsample the ROI into a configurable pyramid level before temporal filtering.
-- Use bounded rolling state; do not retain unbounded full-resolution frames.
-- Preserve the original ROI shape on output.
-- Support `enabled: false` as a transparent pass-through.
-- Make temporal frequency limits explicit in config.
+Added `vitals.signal_evm` configuration and routed the estimation ROI through the signal EVM stage before pulse estimation. The existing `output.evm` panel remains a separate display/debug feature.
 
-**TDD verification:**
+### Task 5a: Add shared runtime telemetry state and health endpoint — complete
 
-```bash
-uv run --extra dev pytest tests/test_evm.py -q
-```
+Implemented `RuntimeTelemetry` and `output.health`. `GET /health` now returns service liveness, frame/drop counters, OpenCL state, latest rates/confidence, signal quality, and an update timestamp.
 
-Tests must demonstrate: pass-through when disabled, synthetic in-band modulation is amplified, and out-of-band/static content is not amplified.
+### Task 5b: Add optional Home Assistant MQTT discovery/state publishing — complete
 
-### Task 4b: Integrate signal EVM into the estimator pipeline
+Implemented optional `telemetry.mqtt`. When enabled, the service publishes Home Assistant MQTT discovery for pulse, breathing, confidence, and signal-quality sensors, then publishes the latest telemetry state at the configured interval. MQTT remains disabled by default.
 
-**Objective:** Route the configured ROI through the signal EVM stage before pulse estimation, while retaining the existing display EVM panel as an independent debug/visualization feature.
-
-**Files:**
-- Modify: `src/evm_overlay/config.py`
-- Modify: `src/evm_overlay/service.py`
-- Modify: `config.example.yaml`
-- Test: `tests/test_config.py`
-
-**TDD verification:**
-
-```bash
-uv run --extra dev pytest tests/test_config.py tests/test_evm.py -q
-```
-
-### Task 5a: Add shared runtime telemetry state and health endpoint
-
-**Objective:** Publish a lightweight JSON endpoint with service liveness, stream counters, OpenCL state, and latest non-medical estimates.
-
-**Files:**
-- Create: `src/evm_overlay/health.py`
-- Create: `tests/test_health.py`
-- Modify: `src/evm_overlay/config.py`
-- Modify: `src/evm_overlay/service.py`
-
-**Required JSON fields:**
-
-```text
-status, frames_processed, dropped_frames, opencl_available, opencl_enabled,
-pulse_bpm, pulse_confidence, breathing_bpm, breathing_confidence,
-signal_quality, updated_at
-```
-
-**TDD verification:**
-
-```bash
-uv run --extra dev pytest tests/test_health.py -q
-```
-
-### Task 5b: Add optional Home Assistant MQTT discovery/state publishing
-
-**Objective:** When explicitly configured, publish pulse/breathing state and Home Assistant MQTT discovery metadata without affecting users who do not configure MQTT.
-
-**Files:**
-- Create: `src/evm_overlay/mqtt.py`
-- Create: `tests/test_mqtt.py`
-- Modify: `pyproject.toml`
-- Modify: `src/evm_overlay/config.py`
-- Modify: `src/evm_overlay/service.py`
-- Modify: `config.example.yaml`
-
-**TDD verification:**
-
-```bash
-uv run --extra dev pytest tests/test_mqtt.py -q
-```
-
-### Task 6: Release verification
+### Task 6: Release verification — in progress
 
 **Objective:** Verify the complete service locally, then publish a new GHCR version tag and update README usage if required.
 
