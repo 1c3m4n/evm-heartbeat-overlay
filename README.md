@@ -65,7 +65,9 @@ streams:
   output_url: rtsp://evm-mediamtx:8554/evm-overlay
 ```
 
-### 2. Create the test relay and build the image
+### 2. Create the test relay and get the image
+
+Use the published `v1` image for local testing:
 
 ```bash
 docker network create evm-test 2>/dev/null || true
@@ -75,6 +77,12 @@ docker run -d --name evm-mediamtx --network evm-test \
   -p 8554:8554 \
   bluenviron/mediamtx:latest
 
+docker pull ghcr.io/1c3m4n/evm-heartbeat-overlay:v1
+```
+
+To test unpushed local code instead, build a local image and replace the final image name in the run command with `evm-heartbeat-overlay:local`:
+
+```bash
 docker build -t evm-heartbeat-overlay:local .
 ```
 
@@ -95,7 +103,7 @@ docker run -d --name evm-heartbeat-overlay-test \
   --security-opt seccomp=unconfined \
   -p 8088:8088 \
   -v "$PWD/config.local.yaml:/config/config.yaml:ro" \
-  evm-heartbeat-overlay:local
+  ghcr.io/1c3m4n/evm-heartbeat-overlay:v1
 ```
 
 ### 4. Verify all layers
