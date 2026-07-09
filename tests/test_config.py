@@ -81,6 +81,10 @@ output:
     enabled: true
     host: 0.0.0.0
     port: 8089
+  ui:
+    enabled: true
+    host: 0.0.0.0
+    port: 8090
   overlay:
     enabled: true
     position: [24, 48]
@@ -133,6 +137,8 @@ output:
     assert cfg.snapshot.port == 8088
     assert cfg.health.enabled is True
     assert cfg.health.port == 8089
+    assert cfg.ui.enabled is True
+    assert cfg.ui.port == 8090
     assert cfg.mqtt.enabled is True
     assert cfg.mqtt.host == "mqtt.local"
     assert cfg.mqtt.topic_prefix == "nursery_evm"

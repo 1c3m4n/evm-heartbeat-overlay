@@ -18,6 +18,7 @@ from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
 from evm_overlay.snapshot import SnapshotStore, start_snapshot_server
 from evm_overlay.skin_detection import apply_mask_visualization, make_skin_mask
+from evm_overlay.ui import ConfigController, start_ui_server
 from evm_overlay.stream_writer import FfmpegRtspWriter
 
 LOG = logging.getLogger(__name__)
@@ -37,6 +38,7 @@ def configure_opencl(enabled: bool) -> tuple[bool, bool]:
 
 def run(config_path: str) -> int:
     cfg = load_config(config_path)
+    config_controller = ConfigController(config_path, cfg)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     opencl_available, opencl_enabled = configure_opencl(cfg.processing.use_opencl)
     telemetry = RuntimeTelemetry(opencl_available=opencl_available, opencl_enabled=opencl_enabled)
@@ -53,12 +55,16 @@ def run(config_path: str) -> int:
     LOG.info("source size=%sx%s output size=%sx%s fps=%s", source_width, source_height, width, height, fps)
     writer = FfmpegRtspWriter(cfg.output_url, width, height, fps)
     snapshot_store = SnapshotStore()
+    input_store = SnapshotStore()
     snapshot_server = start_snapshot_server(cfg.snapshot, snapshot_store)
     if snapshot_server is not None:
         LOG.info("snapshot server listening on http://%s:%s%s", cfg.snapshot.host, cfg.snapshot.port, cfg.snapshot.path)
     health_server = start_health_server(cfg.health.host, cfg.health.port, telemetry) if cfg.health.enabled else None
     if health_server is not None:
         LOG.info("health server listening on http://%s:%s/health", cfg.health.host, cfg.health.port)
+    ui_server = start_ui_server(cfg.ui.host, cfg.ui.port, config_controller, input_store, snapshot_store) if cfg.ui.enabled else None
+    if ui_server is not None:
+        LOG.info("UI listening on http://%s:%s/", cfg.ui.host, cfg.ui.port)
     mqtt_publisher = None
     if cfg.mqtt.enabled:
         try:
@@ -93,6 +99,7 @@ def run(config_path: str) -> int:
     last = 0.0
     last_mqtt_publish = 0.0
     while True:
+        cfg = config_controller.get_config()
         ok, frame = capture.read()
         if not ok:
             telemetry.record_drop()
@@ -100,6 +107,7 @@ def run(config_path: str) -> int:
             time.sleep(0.5)
             continue
         frame = resize_for_output(frame, cfg.output)
+        input_store.update(frame)
         roi = crop_roi(frame, cfg.roi)
         signal_roi = signal_evm.update(roi)
         skin_mask = make_skin_mask(roi, cfg.skin_detection)

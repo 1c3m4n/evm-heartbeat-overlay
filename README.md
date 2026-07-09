@@ -1,6 +1,6 @@
 # EVM Heartbeat Overlay
 
-Experimental RTSP microservice that reads a Frigate/go2rtc restream, estimates pulse and breathing from a configured region of interest (ROI), renders a subtle-motion EVM panel, and publishes a new RTSP stream plus an HTTP JPEG snapshot.
+Experimental RTSP microservice that reads a Frigate/go2rtc restream, estimates pulse and breathing from configured regions of interest (ROIs), renders a subtle-motion EVM panel, and publishes a new RTSP stream plus HTTP JPEG snapshot, health, and browser tuning UI endpoints.
 
 > **Not medical software.** Pulse and respiration output is experimental visual telemetry only. Do not use it to monitor a child's safety, diagnose a condition, or make medical decisions.
 
@@ -10,7 +10,7 @@ Experimental RTSP microservice that reads a Frigate/go2rtc restream, estimates p
 Camera -> Frigate -> go2rtc restream -> EVM container -> MediaMTX -> RTSP consumers
                                       |                    |
                                       |                    +-> Home Assistant / Frigate
-                                      +-> JPEG snapshot endpoint
+                                      +-> JPEG snapshot / health / UI endpoints
 ```
 
 Use a Frigate/go2rtc restream as the input whenever possible. It avoids opening an additional connection to the physical camera.
@@ -36,7 +36,7 @@ cp config.example.yaml config.local.yaml
 | `vitals.pulse` / `vitals.breathing` | Physiological frequency bands, windows, and confidence/motion gates. |
 | `skin_detection` | Visible-light/IR skin candidate mask for pulse estimation. |
 | `telemetry.mqtt` | Optional Home Assistant MQTT discovery and periodic state publishing. Disabled by default. |
-| `output.video` / `output.snapshot` / `output.health` | Published resolution, HTTP snapshot, and JSON health/metrics endpoint. |
+| `output.video` / `output.snapshot` / `output.health` / `output.ui` | Published resolution, HTTP snapshot, JSON health/metrics endpoint, and browser UI. |
 | `output.overlay` | Display toggle, rate confidence threshold, position, and both on-frame rate labels. |
 | `output.evm` | EVM panel appearance, subtle-motion filtering, and display denoising. |
 
@@ -123,7 +123,8 @@ docker run -d --name evm-heartbeat-overlay-test \
   --security-opt seccomp=unconfined \
   -p 8088:8088 \
   -p 8089:8089 \
-  -v "$PWD/config.local.yaml:/config/config.yaml:ro" \
+  -p 8090:8090 \
+  -v "$PWD/config.local.yaml:/config/config.yaml" \
   ghcr.io/1c3m4n/evm-heartbeat-overlay:v2
 ```
 
@@ -140,6 +141,9 @@ curl -sS --max-time 5 -o /tmp/evm-snapshot.jpg \
 file /tmp/evm-snapshot.jpg
 
 curl -sS http://127.0.0.1:8089/health
+
+# Open the tuning UI in a browser:
+# http://127.0.0.1:8090/
 
 timeout 10 ffprobe -v error -rtsp_transport tcp \
   -select_streams v:0 \
@@ -178,6 +182,13 @@ OpenCL requested=True available=<bool> enabled=<bool>
 ```
 
 If `available=False`, the service can still run on CPU.
+
+## Browser tuning UI
+
+- Open `http://127.0.0.1:8090/` to preview the input frame and processed output side by side.
+- Draw the green pulse ROI over stable exposed skin and the blue breathing ROI over chest/torso/blanket movement; pressing **Save ROI boxes live** updates `config.local.yaml` and the running service without a container restart.
+- The UI intentionally writes only ROI boxes. Edit the YAML for estimator ranges or stream URLs, then restart the container.
+- Keep the config mount writable when using the UI: `-v "$PWD/config.local.yaml:/config/config.yaml"` without `:ro`.
 
 ## Tuning notes
 
