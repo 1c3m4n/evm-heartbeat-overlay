@@ -58,7 +58,7 @@ class PulseEstimator:
         if std <= 1e-9:
             return None
         windowed = detrended * np.hamming(len(detrended))
-        spectrum = np.abs(np.fft.rfft(windowed))
+        spectrum = np.abs(np.fft.rfft(windowed)) ** 2
         freqs = np.fft.rfftfreq(len(windowed), d=1.0 / self.fps)
         band = (freqs >= self.min_hz) & (freqs <= self.max_hz)
         if not np.any(band):
@@ -66,6 +66,15 @@ class PulseEstimator:
         band_power = spectrum[band]
         peak_idx = int(np.argmax(band_power))
         peak_hz = float(freqs[band][peak_idx])
-        total_power = float(np.sum(band_power))
-        confidence = 0.0 if total_power <= 1e-12 else float(band_power[peak_idx] / total_power)
+        peak_power = float(band_power[peak_idx])
+        total_band_power = float(np.sum(band_power))
+        total_power = float(np.sum(spectrum[1:]))
+        if peak_power <= 1e-12 or total_band_power <= 1e-12 or total_power <= 1e-12:
+            confidence = 0.0
+        else:
+            background = float(np.median(band_power))
+            prominence = peak_power / (peak_power + background + 1e-12)
+            concentration = peak_power / total_band_power
+            band_dominance = total_band_power / total_power
+            confidence = 0.55 * prominence + 0.30 * concentration + 0.15 * band_dominance
         return PulseEstimate(bpm=peak_hz * 60.0, confidence=max(0.0, min(1.0, confidence)), samples=len(values))

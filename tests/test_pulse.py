@@ -20,7 +20,7 @@ def test_pulse_estimator_recovers_synthetic_heart_rate_from_green_channel():
 
     assert estimate is not None
     assert abs(estimate.bpm - bpm) <= 4
-    assert 0.0 <= estimate.confidence <= 1.0
+    assert estimate.confidence >= 0.75
 
 
 def test_pulse_estimator_uses_only_masked_skin_pixels():
@@ -46,3 +46,25 @@ def test_pulse_estimator_skips_frame_when_mask_has_too_few_pixels():
 
     assert estimator.update(patch, mask=mask) is None
     assert len(estimator._values) == 0
+
+
+def test_pulse_confidence_drops_for_noisy_signal():
+    fps = 30
+    samples = fps * 10
+    rng = np.random.default_rng(7)
+
+    clean = PulseEstimator(fps=fps, min_bpm=60, max_bpm=180, window_seconds=8)
+    noisy = PulseEstimator(fps=fps, min_bpm=60, max_bpm=180, window_seconds=8)
+    for i in range(samples):
+        t = i / fps
+        clean_patch = np.zeros((8, 8, 3), dtype=np.float32)
+        clean_patch[:, :, 1] = 100 + 4 * np.sin(2 * np.pi * 2.0 * t)
+        clean_estimate = clean.update(clean_patch)
+
+        noisy_patch = np.zeros((8, 8, 3), dtype=np.float32)
+        noisy_patch[:, :, 1] = 100 + 0.25 * np.sin(2 * np.pi * 2.0 * t) + rng.normal(0, 2.0)
+        noisy_estimate = noisy.update(noisy_patch)
+
+    assert clean_estimate is not None
+    assert noisy_estimate is not None
+    assert clean_estimate.confidence > noisy_estimate.confidence
