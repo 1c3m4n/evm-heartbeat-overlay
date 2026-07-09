@@ -19,8 +19,11 @@ evm_visualization:
   alpha: 25
   learning_rate: 0.05
   mode: inset
-  inset_scale: 0.5
+  inset_scale: 1.5
+  anchor: bottom_right
+  margin: 24
 overlay:
   enabled: true
   label: Nursery pulse
+  min_confidence: 0.0
   position: [24, 48]

@@ -56,6 +56,11 @@ class OverlayConfig:
     enabled: bool = True
     label: str = "Pulse"
     position: tuple[int, int] = (24, 48)
+    min_confidence: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.min_confidence < 0 or self.min_confidence > 1:
+            raise ValueError("overlay.min_confidence must be between 0 and 1")
 
 
 @dataclass(frozen=True)
@@ -65,6 +70,7 @@ class EvmVisualizationConfig:
     learning_rate: float = 0.05
     mode: str = "inset"
     inset_scale: float = 0.5
+    anchor: str = "near_roi"
     margin: int = 8
     border_color: tuple[int, int, int] = (0, 255, 255)
 
@@ -75,6 +81,8 @@ class EvmVisualizationConfig:
             raise ValueError("evm_visualization.learning_rate must be in (0, 1]")
         if self.mode not in {"inset", "replace_roi", "off"}:
             raise ValueError("evm_visualization.mode must be inset, replace_roi, or off")
+        if self.anchor not in {"near_roi", "bottom_right"}:
+            raise ValueError("evm_visualization.anchor must be near_roi or bottom_right")
         if self.inset_scale <= 0:
             raise ValueError("evm_visualization.inset_scale must be > 0")
 

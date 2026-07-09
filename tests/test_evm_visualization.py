@@ -1,7 +1,7 @@
 import numpy as np
 
 from evm_overlay.config import EvmVisualizationConfig, RoiConfig
-from evm_overlay.evm_visualization import EvmVisualizer, draw_evm_inset
+from evm_overlay.evm_visualization import EvmVisualizer, compute_evm_inset_rect, draw_evm_inset
 
 
 def test_evm_visualizer_amplifies_temporal_roi_changes():
@@ -30,3 +30,15 @@ def test_draw_evm_inset_places_labeled_visualization_next_to_roi():
     # Inset is drawn to the right of the ROI at x + width + margin.
     assert out[15, 48].tolist() == [1, 2, 3]
     assert out[20, 55].mean() > 100
+
+
+def test_compute_evm_inset_rect_can_anchor_bottom_right():
+    frame = np.zeros((648, 1152, 3), dtype=np.uint8)
+    evm_roi = np.zeros((180, 320, 3), dtype=np.uint8)
+    roi = RoiConfig(x=100, y=90, width=320, height=180)
+    cfg = EvmVisualizationConfig(enabled=True, inset_scale=1.5, anchor="bottom_right", margin=24)
+
+    x, y, w, h = compute_evm_inset_rect(frame, evm_roi, roi, cfg)
+
+    assert (w, h) == (480, 270)
+    assert (x, y) == (648, 354)
