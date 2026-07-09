@@ -132,6 +132,8 @@ class EvmVisualizationConfig:
     subtle_only: bool = False
     subtle_min_delta: float = 0.0
     subtle_max_delta: float = 12.0
+    denoise_spatial_kernel: int = 0
+    denoise_temporal_alpha: float = 1.0
 
     def __post_init__(self) -> None:
         if self.alpha < 0:
@@ -148,6 +150,10 @@ class EvmVisualizationConfig:
             raise ValueError("evm_visualization.inset_scale must be > 0")
         if self.subtle_min_delta < 0 or self.subtle_max_delta <= self.subtle_min_delta:
             raise ValueError("evm_visualization subtle delta range must be >= 0 and ordered")
+        if self.denoise_spatial_kernel < 0 or self.denoise_spatial_kernel % 2 == 0 and self.denoise_spatial_kernel != 0:
+            raise ValueError("evm_visualization.denoise_spatial_kernel must be 0 or a positive odd integer")
+        if not 0 < self.denoise_temporal_alpha <= 1:
+            raise ValueError("evm_visualization.denoise_temporal_alpha must be in (0, 1]")
 
 
 @dataclass(frozen=True)

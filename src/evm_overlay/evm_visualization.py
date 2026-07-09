@@ -17,11 +17,13 @@ class EvmVisualizer:
     def __init__(self, config: EvmVisualizationConfig) -> None:
         self.config = config
         self._baseline: np.ndarray | None = None
+        self._display: np.ndarray | None = None
 
     def update(self, roi_frame: np.ndarray, mask: np.ndarray | None = None) -> np.ndarray:
         current = roi_frame.astype(np.float32)
         if self._baseline is None or self._baseline.shape != current.shape:
             self._baseline = current.copy()
+            self._display = current.copy()
             return roi_frame.copy()
 
         delta = current - self._baseline
@@ -36,9 +38,17 @@ class EvmVisualizer:
             amplified_float = current.copy()
             amplified_float[mask] = existing[mask]
         amplified = np.clip(amplified_float, 0, 255).astype(np.uint8)
+        if self.config.denoise_spatial_kernel:
+            amplified = cv2.GaussianBlur(amplified, (self.config.denoise_spatial_kernel, self.config.denoise_spatial_kernel), 0)
+        if self._display is None or self._display.shape != amplified.shape:
+            self._display = amplified.astype(np.float32)
+        else:
+            alpha = self.config.denoise_temporal_alpha
+            self._display = alpha * amplified.astype(np.float32) + (1.0 - alpha) * self._display
+        denoised = np.clip(self._display, 0, 255).astype(np.uint8)
         lr = self.config.learning_rate
         self._baseline = (1.0 - lr) * self._baseline + lr * current
-        return amplified
+        return denoised
 
 
 def compute_evm_inset_rect(frame: np.ndarray, evm_roi: np.ndarray, roi: RoiConfig, config: EvmVisualizationConfig) -> tuple[int, int, int, int]:

@@ -44,6 +44,8 @@ evm_visualization:
   subtle_only: true
   subtle_min_delta: 0.5
   subtle_max_delta: 8.0
+  denoise_spatial_kernel: 5
+  denoise_temporal_alpha: 0.35
   anchor: bottom_right
   margin: 24
 overlay:

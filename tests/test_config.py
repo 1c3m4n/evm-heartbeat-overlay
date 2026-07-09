@@ -48,6 +48,8 @@ evm_visualization:
   subtle_only: true
   subtle_min_delta: 0.5
   subtle_max_delta: 8.0
+  denoise_spatial_kernel: 5
+  denoise_temporal_alpha: 0.35
 """,
         encoding="utf-8",
     )
@@ -87,3 +89,5 @@ evm_visualization:
     assert cfg.evm_visualization.subtle_only is True
     assert cfg.evm_visualization.subtle_min_delta == 0.5
     assert cfg.evm_visualization.subtle_max_delta == 8.0
+    assert cfg.evm_visualization.denoise_spatial_kernel == 5
+    assert cfg.evm_visualization.denoise_temporal_alpha == 0.35
