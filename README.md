@@ -67,7 +67,11 @@ streams:
 
 ### 2. Create the test relay and get the image
 
-Use the published `v1` image for local testing:
+Use the published `v1` image for local testing. The current GitHub Container Registry package is private, so authenticate once before pulling it:
+
+```bash
+echo "$(gh auth token)" | docker login ghcr.io -u 1c3m4n --password-stdin
+```
 
 ```bash
 docker network create evm-test 2>/dev/null || true
