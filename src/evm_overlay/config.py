@@ -103,6 +103,17 @@ class SnapshotConfig:
 
 
 @dataclass(frozen=True)
+class HealthConfig:
+    enabled: bool = True
+    host: str = "0.0.0.0"
+    port: int = 8089
+
+    def __post_init__(self) -> None:
+        if self.port <= 0 or self.port > 65535:
+            raise ValueError("health.port must be a valid TCP port")
+
+
+@dataclass(frozen=True)
 class SkinDetectionConfig:
     enabled: bool = False
     preset: str = "auto"
@@ -185,6 +196,7 @@ class AppConfig:
     breathing: BreathingConfig = field(default_factory=BreathingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
+    health: HealthConfig = field(default_factory=HealthConfig)
     skin_detection: SkinDetectionConfig = field(default_factory=SkinDetectionConfig)
     overlay: OverlayConfig = field(default_factory=OverlayConfig)
     evm_visualization: EvmVisualizationConfig = field(default_factory=EvmVisualizationConfig)
@@ -216,6 +228,7 @@ def load_config(path: str | Path) -> AppConfig:
     output_group = _expect_mapping(data.get("output", {}), "output")
     output = OutputConfig(**_expect_mapping(output_group.get("video", {}), "output.video"))
     snapshot = SnapshotConfig(**_expect_mapping(output_group.get("snapshot", {}), "output.snapshot"))
+    health = HealthConfig(**_expect_mapping(output_group.get("health", {}), "output.health"))
     skin_detection = SkinDetectionConfig(**data.get("skin_detection", {}))
     overlay_data = _expect_mapping(output_group.get("overlay", {}), "output.overlay")
     if "position" in overlay_data:
@@ -234,6 +247,7 @@ def load_config(path: str | Path) -> AppConfig:
         breathing=breathing,
         output=output,
         snapshot=snapshot,
+        health=health,
         skin_detection=skin_detection,
         overlay=overlay,
         evm_visualization=evm_visualization,

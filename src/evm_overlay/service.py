@@ -11,6 +11,7 @@ from evm_overlay.breathing import BreathingEstimator
 from evm_overlay.evm import TemporalPyramidEvm
 from evm_overlay.evm_visualization import EvmVisualizer, compute_evm_inset_rect, draw_evm_inset
 from evm_overlay.frame_processing import resize_for_output
+from evm_overlay.health import RuntimeTelemetry, start_health_server
 from evm_overlay.overlay import draw_overlay
 from evm_overlay.pulse import PulseEstimator
 from evm_overlay.roi import crop_roi
@@ -21,15 +22,19 @@ from evm_overlay.stream_writer import FfmpegRtspWriter
 LOG = logging.getLogger(__name__)
 
 
-def configure_opencl(enabled: bool) -> None:
+def configure_opencl(enabled: bool) -> tuple[bool, bool]:
     cv2.ocl.setUseOpenCL(bool(enabled))
-    LOG.info("OpenCL requested=%s available=%s enabled=%s", enabled, cv2.ocl.haveOpenCL(), cv2.ocl.useOpenCL())
+    available = bool(cv2.ocl.haveOpenCL())
+    active = bool(cv2.ocl.useOpenCL())
+    LOG.info("OpenCL requested=%s available=%s enabled=%s", enabled, available, active)
+    return available, active
 
 
 def run(config_path: str) -> int:
     cfg = load_config(config_path)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-    configure_opencl(cfg.processing.use_opencl)
+    opencl_available, opencl_enabled = configure_opencl(cfg.processing.use_opencl)
+    telemetry = RuntimeTelemetry(opencl_available=opencl_available, opencl_enabled=opencl_enabled)
 
     capture = cv2.VideoCapture(cfg.input_url, cv2.CAP_FFMPEG)
     if not capture.isOpened():
@@ -46,6 +51,9 @@ def run(config_path: str) -> int:
     snapshot_server = start_snapshot_server(cfg.snapshot, snapshot_store)
     if snapshot_server is not None:
         LOG.info("snapshot server listening on http://%s:%s%s", cfg.snapshot.host, cfg.snapshot.port, cfg.snapshot.path)
+    health_server = start_health_server(cfg.health.host, cfg.health.port, telemetry) if cfg.health.enabled else None
+    if health_server is not None:
+        LOG.info("health server listening on http://%s:%s/health", cfg.health.host, cfg.health.port)
 
     estimator = PulseEstimator(
         fps=fps,
@@ -74,6 +82,7 @@ def run(config_path: str) -> int:
     while True:
         ok, frame = capture.read()
         if not ok:
+            telemetry.record_drop()
             LOG.warning("input read failed; retrying")
             time.sleep(0.5)
             continue
@@ -97,6 +106,12 @@ def run(config_path: str) -> int:
         output_frame = draw_evm_inset(frame, evm_roi, cfg.roi, cfg.evm_visualization)
         pulse_position = (evm_rect[0], max(32, evm_rect[1] - 52)) if cfg.evm_visualization.enabled else None
         output_frame = draw_overlay(output_frame, estimate, cfg.overlay, position=pulse_position, breathing=breathing_estimate)
+        telemetry.record_frame(
+            pulse_bpm=estimate.bpm if estimate else None,
+            pulse_confidence=estimate.confidence if estimate else None,
+            breathing_bpm=breathing_estimate.bpm if breathing_estimate else None,
+            breathing_confidence=breathing_estimate.confidence if breathing_estimate else None,
+        )
         snapshot_store.update(output_frame)
         writer.write(output_frame)
 

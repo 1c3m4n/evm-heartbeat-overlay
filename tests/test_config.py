@@ -63,6 +63,10 @@ output:
     host: 0.0.0.0
     port: 8088
     path: /snapshot.jpg
+  health:
+    enabled: true
+    host: 0.0.0.0
+    port: 8089
   overlay:
     enabled: true
     position: [24, 48]
@@ -111,6 +115,8 @@ output:
     assert cfg.output.height == 648
     assert cfg.snapshot.enabled is True
     assert cfg.snapshot.port == 8088
+    assert cfg.health.enabled is True
+    assert cfg.health.port == 8089
     assert cfg.skin_detection.preset == "auto"
     assert cfg.overlay.pulse_label == "Heart rate"
     assert cfg.overlay.breathing_label == "Respiration"
