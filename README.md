@@ -1,82 +1,156 @@
 # EVM Heartbeat Overlay
 
-Prototype microservice for extracting a remote photoplethysmography / Eulerian Video Magnification signal from a Frigate/go2rtc camera stream and publishing a new stream with an on-frame pulse overlay.
+Experimental RTSP microservice that reads a Frigate/go2rtc restream, estimates pulse and breathing from a configured region of interest (ROI), renders a subtle-motion EVM panel, and publishes a new RTSP stream plus an HTTP JPEG snapshot.
 
-> Not medical software. Treat output as experimental presence/vitals signal quality telemetry, not a clinical heart-rate monitor.
+> **Not medical software.** Pulse and respiration output is experimental visual telemetry only. Do not use it to monitor a child's safety, diagnose a condition, or make medical decisions.
 
 ## Architecture
 
 ```text
-Camera -> Frigate -> built-in go2rtc restream -> this container -> RTSP/WebRTC output stream
-                                      \-> ROI crop -> green-channel rPPG/EVM -> BPM estimate -> overlay
+Camera -> Frigate -> go2rtc restream -> EVM container -> MediaMTX -> RTSP consumers
+                                      |                    |
+                                      |                    +-> Home Assistant / Frigate
+                                      +-> JPEG snapshot endpoint
 ```
 
-Recommended first deployment path:
+Use a Frigate/go2rtc restream as the input whenever possible. It avoids opening an additional connection to the physical camera.
 
-1. In Frigate, enable/reuse a low-load go2rtc restream for the camera.
-2. Point `input_url` at that restream, not the physical camera, so this service does not add another camera connection.
-3. Crop the ROI aggressively to the crib/bed/mattress area before any EVM math.
-4. Pass AMD devices into Docker: `/dev/dri` and `/dev/kfd`.
-5. Enable OpenCL in config; the service logs whether OpenCV sees OpenCL.
+## Configuration
 
-## Quick start
+Start from the documented example:
+
+```bash
+cp config.example.yaml config.local.yaml
+```
+
+`config.local.yaml` is ignored by Git, so it is the place for actual camera URLs, IPs, and credentials.
+
+### Section overview
+
+| Section | Purpose |
+| --- | --- |
+| `streams` | RTSP input restream and published RTSP output URL. |
+| `roi` | Pixel rectangle used for pulse and breathing estimation. Coordinates are relative to `output.video`. |
+| `capture` | Processing frame rate and OpenCL request. |
+| `vitals.pulse` / `vitals.breathing` | Physiological frequency bands, windows, and confidence/motion gates. |
+| `skin_detection` | Visible-light/IR skin candidate mask for pulse estimation. |
+| `output.video` / `output.snapshot` | Published resolution and HTTP snapshot endpoint. |
+| `output.overlay` | Display toggle, rate confidence threshold, position, and both on-frame rate labels. |
+| `output.evm` | EVM panel appearance, subtle-motion filtering, and display denoising. |
+
+The complete list and tuning comments are in [`config.example.yaml`](config.example.yaml).
+
+Key display labels are intentionally configurable:
+
+```yaml
+output:
+  overlay:
+    pulse_label: Pulse
+    breathing_label: Breathing
+  evm:
+    label: Subtle motion
+```
+
+## Local Docker test
+
+These commands create a local MediaMTX relay, build the image, and run the service against `config.local.yaml`.
+
+### 1. Prepare the local config
+
+Set your actual input and output endpoints. The output hostname must be resolvable **inside** the container; when using the relay command below, keep the MediaMTX container hostname:
+
+```yaml
+streams:
+  input_url: rtsp://YOUR_FRIGATE_HOST:8554/YOUR_RESTREAM
+  output_url: rtsp://evm-mediamtx:8554/evm-overlay
+```
+
+### 2. Create the test relay and build the image
+
+```bash
+docker network create evm-test 2>/dev/null || true
+
+docker rm -f evm-mediamtx 2>/dev/null || true
+docker run -d --name evm-mediamtx --network evm-test \
+  -p 8554:8554 \
+  bluenviron/mediamtx:latest
+
+docker build -t evm-heartbeat-overlay:local .
+```
+
+### 3. Run the processor
+
+Replace `192.168.1.32` with the LAN IP of the Frigate/go2rtc host when its `.local` name is not resolvable inside Docker. Remove the AMD device arguments when testing on a system without AMD/ROCm access.
+
+```bash
+docker rm -f evm-heartbeat-overlay-test 2>/dev/null || true
+
+docker run -d --name evm-heartbeat-overlay-test \
+  --network evm-test \
+  --add-host 1c4.local:192.168.1.32 \
+  --device=/dev/dri \
+  --device=/dev/kfd \
+  --group-add video \
+  --group-add render \
+  --security-opt seccomp=unconfined \
+  -p 8088:8088 \
+  -v "$PWD/config.local.yaml:/config/config.yaml:ro" \
+  evm-heartbeat-overlay:local
+```
+
+### 4. Verify all layers
+
+```bash
+docker ps --filter name=evm- \
+  --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}'
+
+docker logs --tail 100 evm-heartbeat-overlay-test
+
+curl -sS --max-time 5 -o /tmp/evm-snapshot.jpg \
+  http://127.0.0.1:8088/snapshot.jpg
+file /tmp/evm-snapshot.jpg
+
+timeout 10 ffprobe -v error -rtsp_transport tcp \
+  -select_streams v:0 \
+  -show_entries stream=codec_name,width,height,avg_frame_rate \
+  -of default=nw=1 \
+  rtsp://127.0.0.1:8554/evm-overlay
+```
+
+For LAN consumers, replace `127.0.0.1` with the Docker host's LAN IP:
+
+```text
+RTSP:     rtsp://HOST_LAN_IP:8554/evm-overlay
+Snapshot: http://HOST_LAN_IP:8088/snapshot.jpg
+```
+
+In Home Assistant Generic Camera, use the HTTP endpoint as **Still Image URL** and the RTSP endpoint as **Stream Source URL**.
+
+## Development
 
 ```bash
 uv run --extra dev pytest -q
-uv run python -m evm_overlay.service --config config.example.yaml
 ```
-
-For a real camera, copy the example config and point it to Frigate/go2rtc:
-
-```bash
-cp config.example.yaml config.yaml
-# edit input_url/output_url/roi
-```
-
-Example URLs:
-
-```yaml
-input_url: rtsp://1c4.local:8554/nursery
-output_url: rtsp://1c4.local:8554/nursery-heart
-```
-
-## Local network test stream
-
-For Frigate testing from the local network, this repo can publish the processed stream through a local MediaMTX RTSP relay. The currently tested output URL from this host is:
-
-```text
-rtsp://192.168.1.47:8554/baby-bed-heart
-```
-
-The service consumes Frigate's go2rtc restream:
-
-```text
-rtsp://1c4.local:8554/baby_bed
-```
-
-Add the output as a Frigate/go2rtc source when you want Frigate to view the overlay stream.
 
 ## AMD GPU / OpenCL notes
 
-The container template passes both AMD render nodes:
+The Docker command passes both AMD render paths:
 
 - `/dev/dri` for DRM/render access
 - `/dev/kfd` for ROCm/HSA access
 
-At startup, logs include:
+Startup logs include:
 
 ```text
 OpenCL requested=True available=<bool> enabled=<bool>
 ```
 
-If `available=False`, the container can still run on CPU while you adjust the Unraid AMD/ROCm/OpenCL runtime pieces.
+If `available=False`, the service can still run on CPU.
 
-## Roadmap
+## Tuning notes
 
-- [x] Config loading, ROI crop, synthetic pulse estimator tests.
-- [x] Initial RTSP ingest/output service skeleton.
-- [x] Unraid Docker template draft.
-- [ ] Add Laplacian pyramid + temporal bandpass EVM stage.
-- [ ] Add face/skin/bed-surface ROI calibration UI or snapshot tool.
-- [ ] Publish Home Assistant MQTT sensor alongside video overlay.
-- [ ] Add Prometheus/health endpoint for signal quality and dropped frames.
+- Start with a narrow, stable ROI containing exposed skin or a visibly moving chest/torso area.
+- The breathing estimate needs the configured window of usable frames before it appears; the example uses 30 seconds.
+- `output.evm.subtle_max_delta` rejects large movement from amplification. Lower it to ignore more movement; raise it to admit more motion.
+- `denoise_spatial_kernel: 5` and `denoise_temporal_alpha: 0.35` provide moderate smoothing. A lower temporal alpha is calmer but adds delay.
+- In IR/night mode, `skin_detection.preset: auto` switches from color thresholds to grayscale-luminance candidates.

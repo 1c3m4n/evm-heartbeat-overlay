@@ -1,55 +1,93 @@
-input_url: rtsp://1c4.local:8554/nursery
-output_url: rtsp://1c4.local:8554/nursery-heart
+# EVM Heartbeat Overlay runtime configuration.
+#
+# Copy this file to config.local.yaml for local testing. Do not commit camera URLs
+# or credentials in config.local.yaml.
+
+# RTSP ingest and publish endpoints. Prefer a Frigate/go2rtc restream as input.
+streams:
+  input_url: rtsp://1c4.local:8554/nursery
+  output_url: rtsp://1c4.local:8554/nursery-vitals
+
+# Region used for pulse and breathing estimation, in output-video pixels.
 roi:
   x: 100
   y: 90
   width: 320
   height: 180
-processing:
+
+# Frame acquisition and hardware acceleration.
+capture:
   fps: 15
-  min_bpm: 80
-  max_bpm: 200
-  window_seconds: 20
   use_opencl: true
-breathing:
-  enabled: true
-  min_bpm: 8
-  max_bpm: 35
-  window_seconds: 30
-  max_signal_delta: 20
-  min_confidence: 0.0
-output:
-  width: 1152
-  height: 648
-snapshot:
-  enabled: true
-  host: 0.0.0.0
-  port: 8088
-  path: /snapshot.jpg
+
+# Vital-sign estimators. These values control estimation only, not display text.
+vitals:
+  pulse:
+    min_bpm: 80
+    max_bpm: 200
+    window_seconds: 20
+  breathing:
+    enabled: true
+    min_bpm: 8
+    max_bpm: 35
+    window_seconds: 30
+    # Drop one-frame brightness/motion jumps greater than this value.
+    max_signal_delta: 20
+    # Suppress the displayed respiration estimate below this confidence.
+    min_confidence: 0.0
+
+# Restrict pulse estimation to likely skin pixels. `auto` changes to a luminance
+# candidate mask when the camera switches to a mostly grayscale IR image.
 skin_detection:
   enabled: true
-  preset: auto
+  preset: auto # auto | light | broad | ir
   min_pixels: 500
   visualize: true
   ir_luma_min: 35
   ir_luma_max: 245
   ir_grayscale_tolerance: 18
-evm_visualization:
-  enabled: true
-  alpha: 25
-  learning_rate: 0.05
-  mode: inset
-  source: frame
-  inset_scale: 0.42
-  subtle_only: true
-  subtle_min_delta: 0.5
-  subtle_max_delta: 8.0
-  denoise_spatial_kernel: 5
-  denoise_temporal_alpha: 0.35
-  anchor: bottom_right
-  margin: 24
-overlay:
-  enabled: true
-  label: Nursery pulse
-  min_confidence: 0.0
-  position: [24, 48]
+
+# Published video, HTTP snapshot, and all on-frame display settings.
+output:
+  video:
+    width: 1152
+    height: 648
+
+  snapshot:
+    enabled: true
+    host: 0.0.0.0
+    port: 8088
+    path: /snapshot.jpg
+
+  overlay:
+    enabled: true
+    position: [24, 48]
+    min_confidence: 0.0
+    # All text shown for estimated rates is configurable here.
+    pulse_label: Pulse
+    breathing_label: Breathing
+
+  evm:
+    enabled: true
+    label: Subtle motion
+    mode: inset # inset | replace_roi | off
+    source: frame # frame | roi
+    inset_scale: 0.42
+    anchor: bottom_right # bottom_right | near_roi
+    margin: 24
+    border_color: [0, 255, 255] # BGR
+
+    # Amplification baseline: higher alpha makes subtle movement more visible,
+    # but also raises camera/compression noise.
+    alpha: 25
+    learning_rate: 0.05
+
+    # Amplify only subtle per-pixel changes. Large movement is left unamplified.
+    subtle_only: true
+    subtle_min_delta: 0.5
+    subtle_max_delta: 8.0
+
+    # Display-only denoising. Kernel must be 0 or a positive odd integer.
+    denoise_spatial_kernel: 5
+    # 1.0 = no temporal smoothing; lower values are smoother but lag more.
+    denoise_temporal_alpha: 0.35

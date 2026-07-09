@@ -20,11 +20,11 @@ def draw_overlay(
         if breathing is None:
             return frame
         estimate = None
-    lines = [f"{config.label}: -- bpm" if estimate is None else f"{config.label}: {estimate.bpm:0.0f} bpm  conf {estimate.confidence:0.2f}"]
+    lines = [f"{config.pulse_label}: -- bpm" if estimate is None else f"{config.pulse_label}: {estimate.bpm:0.0f} bpm  conf {estimate.confidence:0.2f}"]
     if breathing is not None:
-        lines.append(f"Breathing: {breathing.bpm:0.0f} br/min  conf {breathing.confidence:0.2f}")
+        lines.append(f"{config.breathing_label}: {breathing.bpm:0.0f} br/min  conf {breathing.confidence:0.2f}")
     else:
-        lines.append("Breathing: -- br/min")
+        lines.append(f"{config.breathing_label}: -- br/min")
     x, y = position or config.position
     for i, text in enumerate(lines):
         line_y = y + i * 34

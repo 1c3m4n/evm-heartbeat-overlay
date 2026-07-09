@@ -109,7 +109,8 @@ class SkinDetectionConfig:
 @dataclass(frozen=True)
 class OverlayConfig:
     enabled: bool = True
-    label: str = "Pulse"
+    pulse_label: str = "Pulse"
+    breathing_label: str = "Breathing"
     position: tuple[int, int] = (24, 48)
     min_confidence: float = 0.0
 
@@ -121,6 +122,7 @@ class OverlayConfig:
 @dataclass(frozen=True)
 class EvmVisualizationConfig:
     enabled: bool = False
+    label: str = "EVM"
     alpha: float = 20.0
     learning_rate: float = 0.05
     mode: str = "inset"
@@ -179,23 +181,33 @@ def _expect_mapping(data: Any, name: str) -> dict[str, Any]:
 def load_config(path: str | Path) -> AppConfig:
     raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     data = _expect_mapping(raw, "config")
+    streams = _expect_mapping(data["streams"], "streams")
     roi = RoiConfig(**_expect_mapping(data["roi"], "roi"))
-    processing = ProcessingConfig(**data.get("processing", {}))
-    breathing = BreathingConfig(**data.get("breathing", {}))
-    output = OutputConfig(**data.get("output", {}))
-    snapshot = SnapshotConfig(**data.get("snapshot", {}))
+    capture = _expect_mapping(data.get("capture", {}), "capture")
+    vitals = _expect_mapping(data.get("vitals", {}), "vitals")
+    pulse = _expect_mapping(vitals.get("pulse", {}), "vitals.pulse")
+    breathing_data = _expect_mapping(vitals.get("breathing", {}), "vitals.breathing")
+    processing = ProcessingConfig(
+        fps=capture.get("fps", ProcessingConfig.fps),
+        use_opencl=capture.get("use_opencl", ProcessingConfig.use_opencl),
+        **pulse,
+    )
+    breathing = BreathingConfig(**breathing_data)
+    output_group = _expect_mapping(data.get("output", {}), "output")
+    output = OutputConfig(**_expect_mapping(output_group.get("video", {}), "output.video"))
+    snapshot = SnapshotConfig(**_expect_mapping(output_group.get("snapshot", {}), "output.snapshot"))
     skin_detection = SkinDetectionConfig(**data.get("skin_detection", {}))
-    overlay_data = data.get("overlay", {})
+    overlay_data = _expect_mapping(output_group.get("overlay", {}), "output.overlay")
     if "position" in overlay_data:
         overlay_data = {**overlay_data, "position": tuple(overlay_data["position"])}
     overlay = OverlayConfig(**overlay_data)
-    evm_data = data.get("evm_visualization", {})
+    evm_data = _expect_mapping(output_group.get("evm", {}), "output.evm")
     if "border_color" in evm_data:
         evm_data = {**evm_data, "border_color": tuple(evm_data["border_color"])}
     evm_visualization = EvmVisualizationConfig(**evm_data)
     return AppConfig(
-        input_url=str(data["input_url"]),
-        output_url=str(data["output_url"]),
+        input_url=str(streams["input_url"]),
+        output_url=str(streams["output_url"]),
         roi=roi,
         processing=processing,
         breathing=breathing,

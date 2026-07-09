@@ -75,7 +75,7 @@ def draw_evm_inset(frame: np.ndarray, evm_roi: np.ndarray, roi: RoiConfig, confi
         resized = cv2.resize(evm_roi, (roi.width, roi.height), interpolation=cv2.INTER_LINEAR)
         frame[roi.y : roi.y + roi.height, roi.x : roi.x + roi.width] = resized
         cv2.rectangle(frame, (roi.x, roi.y), (roi.x + roi.width, roi.y + roi.height), config.border_color, 2)
-        cv2.putText(frame, "EVM", (roi.x + 6, max(roi.y + 24, 24)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.border_color, 2, cv2.LINE_AA)
+        cv2.putText(frame, config.label, (roi.x + 6, max(roi.y + 24, 24)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.border_color, 2, cv2.LINE_AA)
         return frame
 
     x, y, inset_w, inset_h = compute_evm_inset_rect(frame, evm_roi, roi, config)
@@ -83,5 +83,5 @@ def draw_evm_inset(frame: np.ndarray, evm_roi: np.ndarray, roi: RoiConfig, confi
 
     frame[y : y + inset_h, x : x + inset_w] = inset
     cv2.rectangle(frame, (x, y), (x + inset_w, y + inset_h), config.border_color, 2)
-    cv2.putText(frame, "EVM", (x + 6, max(y + 24, 24)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.border_color, 2, cv2.LINE_AA)
+    cv2.putText(frame, config.label, (x + 6, max(y + 24, 24)), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.border_color, 2, cv2.LINE_AA)
     return frame
