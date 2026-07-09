@@ -21,9 +21,12 @@ snapshot:
   path: /snapshot.jpg
 skin_detection:
   enabled: true
-  preset: light
+  preset: auto
   min_pixels: 500
   visualize: true
+  ir_luma_min: 35
+  ir_luma_max: 245
+  ir_grayscale_tolerance: 18
 evm_visualization:
   enabled: true
   alpha: 25

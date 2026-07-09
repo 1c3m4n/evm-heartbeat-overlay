@@ -68,15 +68,22 @@ class SnapshotConfig:
 @dataclass(frozen=True)
 class SkinDetectionConfig:
     enabled: bool = False
-    preset: str = "light"
+    preset: str = "auto"
     min_pixels: int = 250
     visualize: bool = False
+    ir_luma_min: int = 35
+    ir_luma_max: int = 245
+    ir_grayscale_tolerance: int = 18
 
     def __post_init__(self) -> None:
-        if self.preset not in {"light", "broad"}:
-            raise ValueError("skin_detection.preset must be light or broad")
+        if self.preset not in {"auto", "light", "broad", "ir"}:
+            raise ValueError("skin_detection.preset must be auto, light, broad, or ir")
         if self.min_pixels < 0:
             raise ValueError("skin_detection.min_pixels must be >= 0")
+        if not (0 <= self.ir_luma_min < self.ir_luma_max <= 255):
+            raise ValueError("skin_detection.ir_luma_min/max must be within 0..255 and ordered")
+        if self.ir_grayscale_tolerance < 0:
+            raise ValueError("skin_detection.ir_grayscale_tolerance must be >= 0")
 
 
 @dataclass(frozen=True)

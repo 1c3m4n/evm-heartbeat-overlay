@@ -26,9 +26,12 @@ snapshot:
   path: /snapshot.jpg
 skin_detection:
   enabled: true
-  preset: light
+  preset: auto
   min_pixels: 50
   visualize: true
+  ir_luma_min: 40
+  ir_luma_max: 240
+  ir_grayscale_tolerance: 12
 evm_visualization:
   enabled: true
   alpha: 25
@@ -55,9 +58,12 @@ evm_visualization:
     assert cfg.snapshot.port == 8088
     assert cfg.snapshot.path == "/snapshot.jpg"
     assert cfg.skin_detection.enabled is True
-    assert cfg.skin_detection.preset == "light"
+    assert cfg.skin_detection.preset == "auto"
     assert cfg.skin_detection.min_pixels == 50
     assert cfg.skin_detection.visualize is True
+    assert cfg.skin_detection.ir_luma_min == 40
+    assert cfg.skin_detection.ir_luma_max == 240
+    assert cfg.skin_detection.ir_grayscale_tolerance == 12
     assert cfg.evm_visualization.enabled is True
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05
