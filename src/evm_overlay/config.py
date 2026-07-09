@@ -38,6 +38,26 @@ class ProcessingConfig:
 
 
 @dataclass(frozen=True)
+class BreathingConfig:
+    enabled: bool = True
+    min_bpm: int = 8
+    max_bpm: int = 35
+    window_seconds: int = 30
+    max_signal_delta: float = 20.0
+    min_confidence: float = 0.0
+
+    def __post_init__(self) -> None:
+        if not (0 < self.min_bpm < self.max_bpm):
+            raise ValueError("breathing.min_bpm must be > 0 and lower than breathing.max_bpm")
+        if self.window_seconds <= 0:
+            raise ValueError("breathing.window_seconds must be > 0")
+        if self.max_signal_delta <= 0:
+            raise ValueError("breathing.max_signal_delta must be > 0")
+        if self.min_confidence < 0 or self.min_confidence > 1:
+            raise ValueError("breathing.min_confidence must be between 0 and 1")
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     width: int | None = None
     height: int | None = None
@@ -109,6 +129,9 @@ class EvmVisualizationConfig:
     anchor: str = "near_roi"
     margin: int = 8
     border_color: tuple[int, int, int] = (0, 255, 255)
+    subtle_only: bool = False
+    subtle_min_delta: float = 0.0
+    subtle_max_delta: float = 12.0
 
     def __post_init__(self) -> None:
         if self.alpha < 0:
@@ -123,6 +146,8 @@ class EvmVisualizationConfig:
             raise ValueError("evm_visualization.anchor must be near_roi or bottom_right")
         if self.inset_scale <= 0:
             raise ValueError("evm_visualization.inset_scale must be > 0")
+        if self.subtle_min_delta < 0 or self.subtle_max_delta <= self.subtle_min_delta:
+            raise ValueError("evm_visualization subtle delta range must be >= 0 and ordered")
 
 
 @dataclass(frozen=True)
@@ -131,6 +156,7 @@ class AppConfig:
     output_url: str
     roi: RoiConfig
     processing: ProcessingConfig = field(default_factory=ProcessingConfig)
+    breathing: BreathingConfig = field(default_factory=BreathingConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     snapshot: SnapshotConfig = field(default_factory=SnapshotConfig)
     skin_detection: SkinDetectionConfig = field(default_factory=SkinDetectionConfig)
@@ -149,6 +175,7 @@ def load_config(path: str | Path) -> AppConfig:
     data = _expect_mapping(raw, "config")
     roi = RoiConfig(**_expect_mapping(data["roi"], "roi"))
     processing = ProcessingConfig(**data.get("processing", {}))
+    breathing = BreathingConfig(**data.get("breathing", {}))
     output = OutputConfig(**data.get("output", {}))
     snapshot = SnapshotConfig(**data.get("snapshot", {}))
     skin_detection = SkinDetectionConfig(**data.get("skin_detection", {}))
@@ -165,6 +192,7 @@ def load_config(path: str | Path) -> AppConfig:
         output_url=str(data["output_url"]),
         roi=roi,
         processing=processing,
+        breathing=breathing,
         output=output,
         snapshot=snapshot,
         skin_detection=skin_detection,

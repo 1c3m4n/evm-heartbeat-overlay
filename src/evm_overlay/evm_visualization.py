@@ -26,9 +26,15 @@ class EvmVisualizer:
 
         delta = current - self._baseline
         amplified_float = current + delta * self.config.alpha
-        if mask is not None:
+        if self.config.subtle_only:
+            delta_magnitude = np.max(np.abs(delta), axis=2)
+            subtle_mask = (delta_magnitude >= self.config.subtle_min_delta) & (delta_magnitude <= self.config.subtle_max_delta)
             amplified_float = current.copy()
-            amplified_float[mask] = current[mask] + delta[mask] * self.config.alpha
+            amplified_float[subtle_mask] = current[subtle_mask] + delta[subtle_mask] * self.config.alpha
+        if mask is not None:
+            existing = amplified_float.copy()
+            amplified_float = current.copy()
+            amplified_float[mask] = existing[mask]
         amplified = np.clip(amplified_float, 0, 255).astype(np.uint8)
         lr = self.config.learning_rate
         self._baseline = (1.0 - lr) * self._baseline + lr * current

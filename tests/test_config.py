@@ -32,6 +32,12 @@ skin_detection:
   ir_luma_min: 40
   ir_luma_max: 240
   ir_grayscale_tolerance: 12
+breathing:
+  enabled: true
+  min_bpm: 8
+  max_bpm: 35
+  window_seconds: 30
+  max_signal_delta: 20
 evm_visualization:
   enabled: true
   alpha: 25
@@ -39,6 +45,9 @@ evm_visualization:
   mode: inset
   source: frame
   inset_scale: 0.5
+  subtle_only: true
+  subtle_min_delta: 0.5
+  subtle_max_delta: 8.0
 """,
         encoding="utf-8",
     )
@@ -64,9 +73,17 @@ evm_visualization:
     assert cfg.skin_detection.ir_luma_min == 40
     assert cfg.skin_detection.ir_luma_max == 240
     assert cfg.skin_detection.ir_grayscale_tolerance == 12
+    assert cfg.breathing.enabled is True
+    assert cfg.breathing.min_bpm == 8
+    assert cfg.breathing.max_bpm == 35
+    assert cfg.breathing.window_seconds == 30
+    assert cfg.breathing.max_signal_delta == 20
     assert cfg.evm_visualization.enabled is True
     assert cfg.evm_visualization.alpha == 25
     assert cfg.evm_visualization.learning_rate == 0.05
     assert cfg.evm_visualization.mode == "inset"
     assert cfg.evm_visualization.source == "frame"
     assert cfg.evm_visualization.inset_scale == 0.5
+    assert cfg.evm_visualization.subtle_only is True
+    assert cfg.evm_visualization.subtle_min_delta == 0.5
+    assert cfg.evm_visualization.subtle_max_delta == 8.0

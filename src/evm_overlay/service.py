@@ -7,6 +7,7 @@ import time
 import cv2
 
 from evm_overlay.config import load_config
+from evm_overlay.breathing import BreathingEstimator
 from evm_overlay.evm_visualization import EvmVisualizer, compute_evm_inset_rect, draw_evm_inset
 from evm_overlay.frame_processing import resize_for_output
 from evm_overlay.overlay import draw_overlay
@@ -53,6 +54,13 @@ def run(config_path: str) -> int:
         min_masked_pixels=cfg.skin_detection.min_pixels,
     )
     evm_visualizer = EvmVisualizer(cfg.evm_visualization)
+    breathing_estimator = BreathingEstimator(
+        fps=fps,
+        min_bpm=cfg.breathing.min_bpm,
+        max_bpm=cfg.breathing.max_bpm,
+        window_seconds=cfg.breathing.window_seconds,
+        max_signal_delta=cfg.breathing.max_signal_delta,
+    )
     last = 0.0
     while True:
         ok, frame = capture.read()
@@ -64,18 +72,21 @@ def run(config_path: str) -> int:
         roi = crop_roi(frame, cfg.roi)
         skin_mask = make_skin_mask(roi, cfg.skin_detection)
         estimate = estimator.update(roi, mask=skin_mask)
+        breathing_estimate = breathing_estimator.update(roi) if cfg.breathing.enabled else None
+        if breathing_estimate is not None and breathing_estimate.confidence < cfg.breathing.min_confidence:
+            breathing_estimate = None
         evm_source = frame if cfg.evm_visualization.source == "frame" else roi
-        evm_mask = make_skin_mask(evm_source, cfg.skin_detection)
+        evm_mask = None if cfg.evm_visualization.subtle_only else make_skin_mask(evm_source, cfg.skin_detection)
         evm_roi = evm_visualizer.update(evm_source, mask=evm_mask)
-        if cfg.skin_detection.enabled and cfg.skin_detection.visualize:
+        if cfg.skin_detection.enabled and cfg.skin_detection.visualize and evm_mask is not None:
             evm_roi = apply_mask_visualization(evm_roi, evm_mask)
         if estimate and time.monotonic() - last > 5:
             LOG.info("pulse bpm=%0.1f confidence=%0.2f samples=%s", estimate.bpm, estimate.confidence, estimate.samples)
             last = time.monotonic()
         evm_rect = compute_evm_inset_rect(frame, evm_roi, cfg.roi, cfg.evm_visualization)
         output_frame = draw_evm_inset(frame, evm_roi, cfg.roi, cfg.evm_visualization)
-        pulse_position = (evm_rect[0], max(32, evm_rect[1] - 12)) if cfg.evm_visualization.enabled else None
-        output_frame = draw_overlay(output_frame, estimate, cfg.overlay, position=pulse_position)
+        pulse_position = (evm_rect[0], max(32, evm_rect[1] - 52)) if cfg.evm_visualization.enabled else None
+        output_frame = draw_overlay(output_frame, estimate, cfg.overlay, position=pulse_position, breathing=breathing_estimate)
         snapshot_store.update(output_frame)
         writer.write(output_frame)
 

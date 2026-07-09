@@ -11,6 +11,13 @@ processing:
   max_bpm: 200
   window_seconds: 20
   use_opencl: true
+breathing:
+  enabled: true
+  min_bpm: 8
+  max_bpm: 35
+  window_seconds: 30
+  max_signal_delta: 20
+  min_confidence: 0.0
 output:
   width: 1152
   height: 648
@@ -34,6 +41,9 @@ evm_visualization:
   mode: inset
   source: frame
   inset_scale: 0.42
+  subtle_only: true
+  subtle_min_delta: 0.5
+  subtle_max_delta: 8.0
   anchor: bottom_right
   margin: 24
 overlay:
